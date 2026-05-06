@@ -1,12 +1,188 @@
 %{
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+#include <unordered_map>
+#include "ast.h"
 #include "parser.hpp"
+
+/* Macros table */
+static std::unordered_map<std::string, std::string> g_defines;
+
+/* Tokens printing helper */
+static bool trace_tokens() {
+    static int v = -1;
+    if (v < 0) {
+        const char* e = getenv("P2P_TRACE_TOKENS");
+        v = (e && *e) ? 1 : 0;
+    }
+    return v == 1;
+}
+
+#define TR(name) do { if (trace_tokens()) \
+    fprintf(stderr, "[tok] line %d: %s '%s'\n", yylineno, #name, yytext); \
+} while (0)
+
 %}
 
 %option noyywrap
 %option yylineno
 
+/* Start conditions for comments && #define */
+%x BLOCK_COMMENT
+%x DEFINE_NAME
+%x DEFINE_VALUE
+
+DIGIT       [0-9]
+LETTER      [a-zA-Z_]
+ID          {LETTER}({LETTER}|{DIGIT})*
+
 %%
-[ \t\r\n]+      { /* skip whitespace */ }
-.               { /**/ }
+
+    /* Whitespaces and \n */
+[ \t\r]+        { /* skip */ }
+\n              { /* yylineno bumps automatically */ }
+
+    /* Comments */
+"//"[^\n]*      { /* line comment */ }
+"/*"            { BEGIN(BLOCK_COMMENT); }
+<BLOCK_COMMENT>{
+    "*/"        { BEGIN(INITIAL); }
+    \n          { /* track lines */ }
+    .           { /* skip */ }
+}
+
+    /* Preprocessor: #define */
+"#define"       { BEGIN(DEFINE_NAME); }
+<DEFINE_NAME>{
+    [ \t]+      { /* skip */ }
+    {ID}        {
+                    static std::string name;
+                    name = yytext;
+                    BEGIN(DEFINE_VALUE);
+                    g_defines[name] = "";
+                }
+    \n          { BEGIN(INITIAL); }
+}
+<DEFINE_VALUE>{
+    [ \t]+      { /* leading space */ }
+    [^\n]+      {
+                    /* find last name without value && save it */
+                    for (auto& kv : g_defines) {
+                        if (kv.second.empty()) {
+                            kv.second = yytext;
+                            /* trim trailing comment // ... */
+                            auto pos = kv.second.find("//");
+                            if (pos != std::string::npos)
+                                kv.second.resize(pos);
+                            /* trim trailing spaces */
+                            while (!kv.second.empty() &&
+                                  (kv.second.back() == ' ' || kv.second.back() == '\t'))
+                                kv.second.pop_back();
+                            break;
+                        }
+                    }
+                }
+    \n          { BEGIN(INITIAL); }
+}
+
+    /* Multisymbol operators */
+"->"            { TR(ARROW);       return OP_ARROW; }
+"::"            { TR(DCOLON);      return OP_DCOLON; }
+".."            { TR(DOTDOT);      return OP_DOTDOT; }
+"++"            { TR(INC);         return OP_INC; }
+"--"            { TR(DEC);         return OP_DEC; }
+"&&"            { TR(AND);         return OP_AND; }
+"||"            { TR(OR);          return OP_OR; }
+"=="            { TR(EQ);          return OP_EQ; }
+"!="            { TR(NEQ);         return OP_NEQ; }
+"<="            { TR(LE);          return OP_LE; }
+">="            { TR(GE);          return OP_GE; }
+"<<"            { TR(SHL);         return OP_SHL; }
+">>"            { TR(SHR);         return OP_SHR; }
+
+    /* LTL-operators */
+"[]"            { TR(LTL_ALWAYS);     return LTL_ALWAYS; }
+"<>"            { TR(LTL_EVENTUALLY); return LTL_EVENTUALLY; }
+
+    /* Keywords: types */
+"byte"          { TR(T_BYTE);     return T_BYTE; }
+"int"           { TR(T_INT);      return T_INT; }
+"bool"          { TR(T_BOOL);     return T_BOOL; }
+"bit"           { TR(T_BIT);      return T_BIT; }
+"short"         { TR(T_SHORT);    return T_SHORT; }
+"unsigned"      { TR(T_UNSIGNED); return T_UNSIGNED; }
+"mtype"         { TR(T_MTYPE);    return T_MTYPE; }
+"chan"          { TR(T_CHAN);     return T_CHAN; }
+
+    /* Keywords: definitions */
+"proctype"      { TR(K_PROCTYPE); return K_PROCTYPE; }
+"active"        { TR(K_ACTIVE);   return K_ACTIVE; }
+"inline"        { TR(K_INLINE);   return K_INLINE; }
+"typedef"       { TR(K_TYPEDEF);  return K_TYPEDEF; }
+"ltl"           { TR(K_LTL);      return K_LTL; }
+"init"          { TR(K_INIT);     return K_INIT; }
+
+    /* Keywords: control */
+"do"            { TR(K_DO);       return K_DO; }
+"od"            { TR(K_OD);       return K_OD; }
+"if"            { TR(K_IF);       return K_IF; }
+"fi"            { TR(K_FI);       return K_FI; }
+"else"          { TR(K_ELSE);     return K_ELSE; }
+"break"         { TR(K_BREAK);    return K_BREAK; }
+"goto"          { TR(K_GOTO);     return K_GOTO; }
+"skip"          { TR(K_SKIP);     return K_SKIP; }
+"atomic"        { TR(K_ATOMIC);   return K_ATOMIC; }
+"d_step"        { TR(K_D_STEP);   return K_D_STEP; }
+"unless"        { TR(K_UNLESS);   return K_UNLESS; }
+
+    /* Keywords: other */
+"for"           { TR(K_FOR);      return K_FOR; }
+"select"        { TR(K_SELECT);   return K_SELECT; }
+"run"           { TR(K_RUN);      return K_RUN; }
+"of"            { TR(K_OF);       return K_OF; }
+"len"           { TR(K_LEN);      return K_LEN; }
+"nempty"        { TR(K_NEMPTY);   return K_NEMPTY; }
+"empty"         { TR(K_EMPTY);    return K_EMPTY; }
+"nfull"         { TR(K_NFULL);    return K_NFULL; }
+"full"          { TR(K_FULL);     return K_FULL; }
+"printf"        { TR(K_PRINTF);   return K_PRINTF; }
+"assert"        { TR(K_ASSERT);   return K_ASSERT; }
+"true"          { TR(K_TRUE);     return K_TRUE; }
+"false"         { TR(K_FALSE);    return K_FALSE; }
+
+    /* Literals */
+{DIGIT}+        {
+                    yylval.int_val = atoi(yytext);
+                    TR(INT_LITERAL);
+                    return INT_LITERAL;
+                }
+
+{ID}            {
+                    auto it = g_defines.find(yytext);
+                    if (it != g_defines.end()) {
+                        const std::string& val = it->second;
+                        for (auto rit = val.rbegin(); rit != val.rend(); ++rit) {
+                            unput(*rit);
+                        }
+                    } else {
+                        yylval.str_val = strdup(yytext);
+                        TR(IDENT);
+                        return IDENT;
+                    }
+                }
+
+[!?=+\-*/%<>(){}\[\],;:@.]   {
+                                if (trace_tokens())
+                                    fprintf(stderr, "[tok] line %d: CHAR '%c'\n",
+                                            yylineno, yytext[0]);
+                                return yytext[0];
+                            }
+
+.               {
+                    fprintf(stderr, "Lexer error at line %d: unexpected char '%c' (0x%02x)\n",
+                            yylineno, yytext[0], (unsigned char)yytext[0]);
+                }
+
 %%
