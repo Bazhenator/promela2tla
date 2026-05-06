@@ -53,14 +53,81 @@ extern int yydebug;
     YYEMPTY = -2,
     YYEOF = 0,                     /* "end of file"  */
     YYerror = 256,                 /* error  */
-    YYUNDEF = 257                  /* "invalid token"  */
+    YYUNDEF = 257,                 /* "invalid token"  */
+    INT_LITERAL = 258,             /* INT_LITERAL  */
+    IDENT = 259,                   /* IDENT  */
+    T_BYTE = 260,                  /* T_BYTE  */
+    T_INT = 261,                   /* T_INT  */
+    T_BOOL = 262,                  /* T_BOOL  */
+    T_BIT = 263,                   /* T_BIT  */
+    T_SHORT = 264,                 /* T_SHORT  */
+    T_UNSIGNED = 265,              /* T_UNSIGNED  */
+    T_MTYPE = 266,                 /* T_MTYPE  */
+    T_CHAN = 267,                  /* T_CHAN  */
+    K_PROCTYPE = 268,              /* K_PROCTYPE  */
+    K_ACTIVE = 269,                /* K_ACTIVE  */
+    K_INLINE = 270,                /* K_INLINE  */
+    K_TYPEDEF = 271,               /* K_TYPEDEF  */
+    K_LTL = 272,                   /* K_LTL  */
+    K_INIT = 273,                  /* K_INIT  */
+    K_DO = 274,                    /* K_DO  */
+    K_OD = 275,                    /* K_OD  */
+    K_IF = 276,                    /* K_IF  */
+    K_FI = 277,                    /* K_FI  */
+    K_ELSE = 278,                  /* K_ELSE  */
+    K_BREAK = 279,                 /* K_BREAK  */
+    K_GOTO = 280,                  /* K_GOTO  */
+    K_SKIP = 281,                  /* K_SKIP  */
+    K_ATOMIC = 282,                /* K_ATOMIC  */
+    K_D_STEP = 283,                /* K_D_STEP  */
+    K_UNLESS = 284,                /* K_UNLESS  */
+    K_FOR = 285,                   /* K_FOR  */
+    K_SELECT = 286,                /* K_SELECT  */
+    K_RUN = 287,                   /* K_RUN  */
+    K_OF = 288,                    /* K_OF  */
+    K_LEN = 289,                   /* K_LEN  */
+    K_NEMPTY = 290,                /* K_NEMPTY  */
+    K_EMPTY = 291,                 /* K_EMPTY  */
+    K_NFULL = 292,                 /* K_NFULL  */
+    K_FULL = 293,                  /* K_FULL  */
+    K_PRINTF = 294,                /* K_PRINTF  */
+    K_ASSERT = 295,                /* K_ASSERT  */
+    K_TRUE = 296,                  /* K_TRUE  */
+    K_FALSE = 297,                 /* K_FALSE  */
+    P_DEFINE = 298,                /* P_DEFINE  */
+    OP_ARROW = 299,                /* OP_ARROW  */
+    OP_DCOLON = 300,               /* OP_DCOLON  */
+    OP_DOTDOT = 301,               /* OP_DOTDOT  */
+    OP_INC = 302,                  /* OP_INC  */
+    OP_DEC = 303,                  /* OP_DEC  */
+    OP_AND = 304,                  /* OP_AND  */
+    OP_OR = 305,                   /* OP_OR  */
+    OP_EQ = 306,                   /* OP_EQ  */
+    OP_NEQ = 307,                  /* OP_NEQ  */
+    OP_LE = 308,                   /* OP_LE  */
+    OP_GE = 309,                   /* OP_GE  */
+    OP_SHL = 310,                  /* OP_SHL  */
+    OP_SHR = 311,                  /* OP_SHR  */
+    LTL_ALWAYS = 312,              /* LTL_ALWAYS  */
+    LTL_EVENTUALLY = 313,          /* LTL_EVENTUALLY  */
+    LTL_UNTIL = 314                /* LTL_UNTIL  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef int YYSTYPE;
+union YYSTYPE
+{
+#line 17 "src/parser.y"
+
+    int         int_val;
+    char*       str_val;
+
+#line 128 "build/parser.hpp"
+
+};
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif
