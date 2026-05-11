@@ -21,6 +21,13 @@ class TernaryExpr;
 class BuiltinCallExpr;
 class ParenExpr;
 
+/* Declarations && LTL */
+class VarDecl;
+class TypedefDecl;
+class MtypeDecl;
+class LtlDecl;
+class LtlFormula;
+
 /* Visitor — extended whenever a new AST node is introduced.
    Adding a new node forces every Visitor to handle it (compile error
    otherwise), which keeps all passes (printing, semantic analysis,
@@ -44,6 +51,13 @@ public:
     virtual void visit(TernaryExpr&)     = 0;
     virtual void visit(BuiltinCallExpr&) = 0;
     virtual void visit(ParenExpr&)       = 0;
+
+    /* Declarations and LTL */
+    virtual void visit(VarDecl&)     = 0;
+    virtual void visit(TypedefDecl&) = 0;
+    virtual void visit(MtypeDecl&)   = 0;
+    virtual void visit(LtlDecl&)     = 0;
+    virtual void visit(LtlFormula&)  = 0;
 };
 
 /* Base class for all AST nodes. */
@@ -64,8 +78,34 @@ using NodePtr = std::unique_ptr<Node>;
 class Expr : public Node { };
 using ExprPtr = std::unique_ptr<Expr>;
 
-/* Concrete expression nodes */
 
+/* Types:
+   A Type is not itself an AST node visited by passes — it is a small
+   structural value attached to declarations. */
+
+enum class BasicTypeKind {
+    Byte, Int, Bool, Bit, Short, Unsigned, Mtype, Chan, Named
+};
+
+class Type;
+using TypePtr = std::unique_ptr<Type>;
+
+class Type {
+public:
+    BasicTypeKind kind = BasicTypeKind::Int;
+
+    /* For Named: the user-defined type name (e.g. "twoDimArray"). */
+    std::string named;
+
+    /* For Mtype: optional set name after ':' (e.g. "action"). */
+    std::string mtype_set;
+
+    /* For Chan: capacity (-1 if absent) and message-field types. */
+    int chan_capacity = -1;
+    std::vector<TypePtr> chan_msg_types;
+};
+
+/* Concrete expression nodes */
 class IntLiteral : public Expr {
 public:
     long value = 0;
@@ -165,6 +205,56 @@ public:
     void accept(Visitor& v) override { v.visit(*this); }
 };
 
+/* Declarations */
+
+class VarDecl : public Node {
+public:
+    TypePtr     type;
+    std::string name;
+    ExprPtr     array_size;   /* nullptr if scalar */
+    ExprPtr     init;         /* nullptr if uninitialised */
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+class TypedefDecl : public Node {
+public:
+    std::string name;
+    std::vector<std::unique_ptr<VarDecl>> fields;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+class MtypeDecl : public Node {
+public:
+    std::string set_name;            /* empty for the default mtype */
+    std::vector<std::string> names;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+/* LTL */
+
+enum class LtlOp {
+    Atom, Always, Eventually, Not, And, Or, Implies, Until
+};
+
+class LtlFormula;
+using LtlPtr = std::unique_ptr<LtlFormula>;
+
+class LtlFormula : public Node {
+public:
+    LtlOp   op   = LtlOp::Atom;
+    LtlPtr  lhs;
+    LtlPtr  rhs;
+    ExprPtr atom;     /* used if op == Atom */
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+class LtlDecl : public Node {
+public:
+    std::string name;
+    LtlPtr formula;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
 /* AST root */
 class Module : public Node {
 public:
@@ -174,5 +264,8 @@ public:
 
 /* Debug helper: print an AST as S-expressions. */
 void print_ast(Node& root, FILE* out);
+
+/* Pretty-printable name for a Type — used by the AST printer. */
+std::string type_to_string(const Type& t);
 
 } // namespace p2p

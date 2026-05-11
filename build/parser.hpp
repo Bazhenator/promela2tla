@@ -44,6 +44,22 @@
 #if YYDEBUG
 extern int yydebug;
 #endif
+/* "%code requires" blocks.  */
+#line 1 "src/parser.y"
+
+    #include <memory>
+    #include <string>
+    #include <vector>
+    #include "ast.h"
+
+    /* Heap-allocated helpers for non-AST lists carried through the parser.
+       Declared here (not in the implementation prologue) so they are
+       visible in parser.hpp, which the lexer includes. */
+    struct TypeList    { std::vector<p2p::TypePtr> items; };
+    struct IdentList   { std::vector<std::string>  items; };
+    struct VarDeclList { std::vector<std::unique_ptr<p2p::VarDecl>> items; };
+
+#line 63 "build/parser.hpp"
 
 /* Token kinds.  */
 #ifndef YYTOKENTYPE
@@ -113,7 +129,8 @@ extern int yydebug;
     START_PROGRAM = 314,           /* START_PROGRAM  */
     START_EXPR = 315,              /* START_EXPR  */
     UMINUS = 316,                  /* UMINUS  */
-    UNOT = 317                     /* UNOT  */
+    UNOT = 317,                    /* UNOT  */
+    PREFIX_INCDEC = 318            /* PREFIX_INCDEC  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -122,13 +139,20 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 55 "src/parser.y"
+#line 113 "src/parser.y"
 
-    int          int_val;
-    char*        str_val;
-    p2p::Expr*   expr;
+    int               int_val;
+    char*             str_val;
+    p2p::Expr*        expr;
+    p2p::Type*        type;
+    p2p::VarDecl*     var_decl;
+    p2p::Node*        node;
+    TypeList*         type_list;
+    IdentList*        ident_list;
+    VarDeclList*      vardecl_list;
+    p2p::LtlFormula*  ltl;
 
-#line 132 "build/parser.hpp"
+#line 156 "build/parser.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
