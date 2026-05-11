@@ -1,0 +1,1 @@
+(workGroupSize > nWorkingPEsPerUnit -> pesIdx + warpId * nWorkingPEsPerUnit : pesIdx);

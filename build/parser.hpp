@@ -94,23 +94,26 @@ extern int yydebug;
     K_ASSERT = 295,                /* K_ASSERT  */
     K_TRUE = 296,                  /* K_TRUE  */
     K_FALSE = 297,                 /* K_FALSE  */
-    P_DEFINE = 298,                /* P_DEFINE  */
-    OP_ARROW = 299,                /* OP_ARROW  */
-    OP_DCOLON = 300,               /* OP_DCOLON  */
-    OP_DOTDOT = 301,               /* OP_DOTDOT  */
-    OP_INC = 302,                  /* OP_INC  */
-    OP_DEC = 303,                  /* OP_DEC  */
-    OP_AND = 304,                  /* OP_AND  */
-    OP_OR = 305,                   /* OP_OR  */
-    OP_EQ = 306,                   /* OP_EQ  */
-    OP_NEQ = 307,                  /* OP_NEQ  */
-    OP_LE = 308,                   /* OP_LE  */
-    OP_GE = 309,                   /* OP_GE  */
-    OP_SHL = 310,                  /* OP_SHL  */
-    OP_SHR = 311,                  /* OP_SHR  */
-    LTL_ALWAYS = 312,              /* LTL_ALWAYS  */
-    LTL_EVENTUALLY = 313,          /* LTL_EVENTUALLY  */
-    LTL_UNTIL = 314                /* LTL_UNTIL  */
+    OP_ARROW = 298,                /* OP_ARROW  */
+    OP_DCOLON = 299,               /* OP_DCOLON  */
+    OP_DOTDOT = 300,               /* OP_DOTDOT  */
+    OP_INC = 301,                  /* OP_INC  */
+    OP_DEC = 302,                  /* OP_DEC  */
+    OP_AND = 303,                  /* OP_AND  */
+    OP_OR = 304,                   /* OP_OR  */
+    OP_EQ = 305,                   /* OP_EQ  */
+    OP_NEQ = 306,                  /* OP_NEQ  */
+    OP_LE = 307,                   /* OP_LE  */
+    OP_GE = 308,                   /* OP_GE  */
+    OP_SHL = 309,                  /* OP_SHL  */
+    OP_SHR = 310,                  /* OP_SHR  */
+    LTL_ALWAYS = 311,              /* LTL_ALWAYS  */
+    LTL_EVENTUALLY = 312,          /* LTL_EVENTUALLY  */
+    LTL_UNTIL = 313,               /* LTL_UNTIL  */
+    START_PROGRAM = 314,           /* START_PROGRAM  */
+    START_EXPR = 315,              /* START_EXPR  */
+    UMINUS = 316,                  /* UMINUS  */
+    UNOT = 317                     /* UNOT  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -119,12 +122,13 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 17 "src/parser.y"
+#line 55 "src/parser.y"
 
-    int         int_val;
-    char*       str_val;
+    int          int_val;
+    char*        str_val;
+    p2p::Expr*   expr;
 
-#line 128 "build/parser.hpp"
+#line 132 "build/parser.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
