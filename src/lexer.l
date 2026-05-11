@@ -7,10 +7,9 @@
 #include "ast.h"
 #include "parser.hpp"
 
-/* Macros table */
+/* Macro table populated by #define directives. */
 static std::unordered_map<std::string, std::string> g_defines;
 
-/* Tokens printing helper */
 static bool trace_tokens() {
     static int v = -1;
     if (v < 0) {
@@ -24,12 +23,23 @@ static bool trace_tokens() {
     fprintf(stderr, "[tok] line %d: %s '%s'\n", yylineno, #name, yytext); \
 } while (0)
 
+/* When set by main(), the lexer emits one START_* marker before the real
+   token stream. This lets the grammar pick between two start symbols. */
+extern int g_parse_mode;
+#define PARSE_PROGRAM 0
+#define PARSE_EXPR    1
+static bool g_start_emitted = false;
+
+/* Reset between runs */
+extern "C" void p2p_reset_lexer_state() {
+    g_defines.clear();
+    g_start_emitted = false;
+}
 %}
 
 %option noyywrap
 %option yylineno
 
-/* Start conditions for comments && #define */
 %x BLOCK_COMMENT
 %x DEFINE_NAME
 %x DEFINE_VALUE
@@ -40,7 +50,16 @@ ID          {LETTER}({LETTER}|{DIGIT})*
 
 %%
 
-    /* Whitespaces and \n */
+%{
+    /* Emit the start-symbol marker before any other token. */
+    if (!g_start_emitted) {
+        g_start_emitted = true;
+        if (g_parse_mode == PARSE_EXPR) return START_EXPR;
+        return START_PROGRAM;
+    }
+%}
+
+    /* Whitespace */
 [ \t\r]+        { /* skip */ }
 \n              { /* yylineno bumps automatically */ }
 
@@ -53,30 +72,27 @@ ID          {LETTER}({LETTER}|{DIGIT})*
     .           { /* skip */ }
 }
 
-    /* Preprocessor: #define */
+    /* Preprocessor: #define NAME VALUE */
 "#define"       { BEGIN(DEFINE_NAME); }
 <DEFINE_NAME>{
     [ \t]+      { /* skip */ }
     {ID}        {
                     static std::string name;
                     name = yytext;
-                    BEGIN(DEFINE_VALUE);
                     g_defines[name] = "";
+                    BEGIN(DEFINE_VALUE);
                 }
     \n          { BEGIN(INITIAL); }
 }
 <DEFINE_VALUE>{
-    [ \t]+      { /* leading space */ }
+    [ \t]+      { /* leading whitespace */ }
     [^\n]+      {
-                    /* find last name without value && save it */
                     for (auto& kv : g_defines) {
                         if (kv.second.empty()) {
                             kv.second = yytext;
-                            /* trim trailing comment // ... */
                             auto pos = kv.second.find("//");
                             if (pos != std::string::npos)
                                 kv.second.resize(pos);
-                            /* trim trailing spaces */
                             while (!kv.second.empty() &&
                                   (kv.second.back() == ' ' || kv.second.back() == '\t'))
                                 kv.second.pop_back();
@@ -87,7 +103,7 @@ ID          {LETTER}({LETTER}|{DIGIT})*
     \n          { BEGIN(INITIAL); }
 }
 
-    /* Multisymbol operators */
+    /* Multi-character operators */
 "->"            { TR(ARROW);       return OP_ARROW; }
 "::"            { TR(DCOLON);      return OP_DCOLON; }
 ".."            { TR(DOTDOT);      return OP_DOTDOT; }
@@ -102,11 +118,11 @@ ID          {LETTER}({LETTER}|{DIGIT})*
 "<<"            { TR(SHL);         return OP_SHL; }
 ">>"            { TR(SHR);         return OP_SHR; }
 
-    /* LTL-operators */
+    /* LTL operators */
 "[]"            { TR(LTL_ALWAYS);     return LTL_ALWAYS; }
 "<>"            { TR(LTL_EVENTUALLY); return LTL_EVENTUALLY; }
 
-    /* Keywords: types */
+    /* Type keywords */
 "byte"          { TR(T_BYTE);     return T_BYTE; }
 "int"           { TR(T_INT);      return T_INT; }
 "bool"          { TR(T_BOOL);     return T_BOOL; }
@@ -116,7 +132,7 @@ ID          {LETTER}({LETTER}|{DIGIT})*
 "mtype"         { TR(T_MTYPE);    return T_MTYPE; }
 "chan"          { TR(T_CHAN);     return T_CHAN; }
 
-    /* Keywords: definitions */
+    /* Top-level keywords */
 "proctype"      { TR(K_PROCTYPE); return K_PROCTYPE; }
 "active"        { TR(K_ACTIVE);   return K_ACTIVE; }
 "inline"        { TR(K_INLINE);   return K_INLINE; }
@@ -124,7 +140,7 @@ ID          {LETTER}({LETTER}|{DIGIT})*
 "ltl"           { TR(K_LTL);      return K_LTL; }
 "init"          { TR(K_INIT);     return K_INIT; }
 
-    /* Keywords: control */
+    /* Control-flow keywords */
 "do"            { TR(K_DO);       return K_DO; }
 "od"            { TR(K_OD);       return K_OD; }
 "if"            { TR(K_IF);       return K_IF; }
@@ -137,7 +153,7 @@ ID          {LETTER}({LETTER}|{DIGIT})*
 "d_step"        { TR(K_D_STEP);   return K_D_STEP; }
 "unless"        { TR(K_UNLESS);   return K_UNLESS; }
 
-    /* Keywords: other */
+
 "for"           { TR(K_FOR);      return K_FOR; }
 "select"        { TR(K_SELECT);   return K_SELECT; }
 "run"           { TR(K_RUN);      return K_RUN; }
@@ -173,6 +189,7 @@ ID          {LETTER}({LETTER}|{DIGIT})*
                     }
                 }
 
+    /* Single-character tokens */
 [!?=+\-*/%<>(){}\[\],;:@.]   {
                                 if (trace_tokens())
                                     fprintf(stderr, "[tok] line %d: CHAR '%c'\n",

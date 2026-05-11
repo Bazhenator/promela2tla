@@ -1,0 +1,1 @@
+nempty(warps) && !empty(workgroups);

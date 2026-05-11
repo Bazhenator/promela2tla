@@ -1,0 +1,1 @@
+barrierIn[d].arr[u * nWarpsPerUnit + w] == 0;
