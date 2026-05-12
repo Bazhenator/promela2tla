@@ -28,6 +28,25 @@ class MtypeDecl;
 class LtlDecl;
 class LtlFormula;
 
+/* Statements */
+class ExprStmt;
+class AssignStmt;
+class IfStmt;
+class DoStmt;
+class AtomicStmt;
+class DStepStmt;
+class ForStmt;
+class SelectStmt;
+class SendStmt;
+class RecvStmt;
+class RunStmt;
+class BreakStmt;
+class SkipStmt;
+class GotoStmt;
+class LabeledStmt;
+class InlineCallStmt;
+class LocalVarDeclStmt;
+
 /* Visitor — extended whenever a new AST node is introduced.
    Adding a new node forces every Visitor to handle it (compile error
    otherwise), which keeps all passes (printing, semantic analysis,
@@ -58,6 +77,25 @@ public:
     virtual void visit(MtypeDecl&)   = 0;
     virtual void visit(LtlDecl&)     = 0;
     virtual void visit(LtlFormula&)  = 0;
+
+    /* Statements */
+    virtual void visit(ExprStmt&)         = 0;
+    virtual void visit(AssignStmt&)       = 0;
+    virtual void visit(IfStmt&)           = 0;
+    virtual void visit(DoStmt&)           = 0;
+    virtual void visit(AtomicStmt&)       = 0;
+    virtual void visit(DStepStmt&)        = 0;
+    virtual void visit(ForStmt&)          = 0;
+    virtual void visit(SelectStmt&)       = 0;
+    virtual void visit(SendStmt&)         = 0;
+    virtual void visit(RecvStmt&)         = 0;
+    virtual void visit(RunStmt&)          = 0;
+    virtual void visit(BreakStmt&)        = 0;
+    virtual void visit(SkipStmt&)         = 0;
+    virtual void visit(GotoStmt&)         = 0;
+    virtual void visit(LabeledStmt&)      = 0;
+    virtual void visit(InlineCallStmt&)   = 0;
+    virtual void visit(LocalVarDeclStmt&) = 0;
 };
 
 /* Base class for all AST nodes. */
@@ -252,6 +290,153 @@ class LtlDecl : public Node {
 public:
     std::string name;
     LtlPtr formula;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+/* Statements:
+   A Stmt is the unit of execution inside a proctype body. Statements
+   compose into sequences (handled in the grammar as ; or -> separated
+   lists). The first statement of an if/do branch acts as a guard. */
+
+class Stmt : public Node { };
+using StmtPtr = std::unique_ptr<Stmt>;
+
+/* A guarded branch of an if/do statement.
+   The branch is a sequence of statements; the first one acts as the guard.
+   `is_else` marks the special  :: else -> ...  case. */
+struct GuardedBranch {
+    bool                  is_else = false;
+    std::vector<StmtPtr>  stmts;
+};
+
+/* A standalone expression used as a statement.
+   In Promela this also serves as a guard: the statement is executable
+   iff the expression evaluates to a non-zero value. */
+class ExprStmt : public Stmt {
+public:
+    ExprPtr expr;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+/* lhs = rhs;
+   lhs is a primary-shape expression (identifier, indexing, field access). */
+class AssignStmt : public Stmt {
+public:
+    ExprPtr lhs;
+    ExprPtr rhs;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+class IfStmt : public Stmt {
+public:
+    std::vector<GuardedBranch> branches;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+class DoStmt : public Stmt {
+public:
+    std::vector<GuardedBranch> branches;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+class AtomicStmt : public Stmt {
+public:
+    std::vector<StmtPtr> body;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+class DStepStmt : public Stmt {
+public:
+    std::vector<StmtPtr> body;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+/* for (var : low .. high) { body } */
+class ForStmt : public Stmt {
+public:
+    std::string var;
+    ExprPtr     low;
+    ExprPtr     high;
+    std::vector<StmtPtr> body;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+/* select (var : low .. high); */
+class SelectStmt : public Stmt {
+public:
+    std::string var;
+    ExprPtr     low;
+    ExprPtr     high;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+/* chan ! e1, e2, ... */
+class SendStmt : public Stmt {
+public:
+    ExprPtr               chan;
+    std::vector<ExprPtr>  args;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+/* chan ? v1, v2, ...
+   Each arg is normally an lvalue to receive into; modelled as an Expr
+   so the printer / codegen can decide what to do per use. */
+class RecvStmt : public Stmt {
+public:
+    ExprPtr               chan;
+    std::vector<ExprPtr>  args;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+/* run procName(args)
+   Note: `run` is also a Promela expression returning a pid, but in
+   autotune.pml it appears only at statement position. */
+class RunStmt : public Stmt {
+public:
+    std::string           name;
+    std::vector<ExprPtr>  args;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+class BreakStmt : public Stmt {
+public:
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+class SkipStmt : public Stmt {
+public:
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+class GotoStmt : public Stmt {
+public:
+    std::string label;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+/* label: stmt */
+class LabeledStmt : public Stmt {
+public:
+    std::string label;
+    StmtPtr     stmt;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+/* Call of an inline function: name(args);
+   Inline calls are syntactically identical to function calls but
+   carry no return value in Promela; treated as a statement here. */
+class InlineCallStmt : public Stmt {
+public:
+    std::string           name;
+    std::vector<ExprPtr>  args;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+/* A local variable declaration appearing inside a proctype body.
+   Wraps a regular VarDecl so the statement-level grammar can carry it. */
+class LocalVarDeclStmt : public Stmt {
+public:
+    std::unique_ptr<VarDecl> decl;
     void accept(Visitor& v) override { v.visit(*this); }
 };
 

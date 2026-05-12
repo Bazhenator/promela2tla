@@ -238,8 +238,147 @@ public:
         fputc(')', out_);
     }
 
+    /* Statements */
+
+    void visit(ExprStmt& s) override {
+        fputs("(expr-stmt ", out_);
+        if (s.expr) s.expr->accept(*this); else fputs("?", out_);
+        fputc(')', out_);
+    }
+
+    void visit(AssignStmt& s) override {
+        fputs("(assign ", out_);
+        if (s.lhs) s.lhs->accept(*this); else fputs("?", out_);
+        fputc(' ', out_);
+        if (s.rhs) s.rhs->accept(*this); else fputs("?", out_);
+        fputc(')', out_);
+    }
+
+    void visit(IfStmt& s) override   { print_guarded("if", s.branches); }
+    void visit(DoStmt& s) override   { print_guarded("do", s.branches); }
+
+    void visit(AtomicStmt& s) override { print_block("atomic", s.body); }
+    void visit(DStepStmt& s) override  { print_block("d_step", s.body); }
+
+    void visit(ForStmt& s) override {
+        fprintf(out_, "(for %s :from ", s.var.c_str());
+        if (s.low) s.low->accept(*this); else fputs("?", out_);
+        fputs(" :to ", out_);
+        if (s.high) s.high->accept(*this); else fputs("?", out_);
+        if (s.body.empty()) { fputc(')', out_); return; }
+        fputc('\n', out_);
+        ++depth_;
+        for (auto& st : s.body) {
+            indent();
+            if (st) st->accept(*this); else fputs("(null)", out_);
+            fputc('\n', out_);
+        }
+        --depth_;
+        indent(); fputs(")", out_);
+    }
+
+    void visit(SelectStmt& s) override {
+        fprintf(out_, "(select %s :from ", s.var.c_str());
+        if (s.low) s.low->accept(*this); else fputs("?", out_);
+        fputs(" :to ", out_);
+        if (s.high) s.high->accept(*this); else fputs("?", out_);
+        fputc(')', out_);
+    }
+
+    void visit(SendStmt& s) override   { print_chan_op("send", s.chan, s.args); }
+    void visit(RecvStmt& s) override   { print_chan_op("recv", s.chan, s.args); }
+
+    void visit(RunStmt& s) override {
+        fprintf(out_, "(run %s", s.name.c_str());
+        for (auto& a : s.args) {
+            fputc(' ', out_);
+            if (a) a->accept(*this); else fputs("?", out_);
+        }
+        fputc(')', out_);
+    }
+
+    void visit(BreakStmt&) override { fputs("(break)", out_); }
+    void visit(SkipStmt&)  override { fputs("(skip)",  out_); }
+
+    void visit(GotoStmt& s) override {
+        fprintf(out_, "(goto %s)", s.label.c_str());
+    }
+
+    void visit(LabeledStmt& s) override {
+        fprintf(out_, "(label %s ", s.label.c_str());
+        if (s.stmt) s.stmt->accept(*this); else fputs("?", out_);
+        fputc(')', out_);
+    }
+
+    void visit(InlineCallStmt& s) override {
+        fprintf(out_, "(call %s", s.name.c_str());
+        for (auto& a : s.args) {
+            fputc(' ', out_);
+            if (a) a->accept(*this); else fputs("?", out_);
+        }
+        fputc(')', out_);
+    }
+
+    void visit(LocalVarDeclStmt& s) override {
+        fputs("(local ", out_);
+        if (s.decl) s.decl->accept(*this); else fputs("?", out_);
+        fputc(')', out_);
+    }
+
 private:
     void indent() { for (int i = 0; i < depth_; ++i) fputs("  ", out_); }
+
+    /* Shared printer for atomic/d_step bodies. */
+    void print_block(const char* tag, std::vector<StmtPtr>& body) {
+        fprintf(out_, "(%s", tag);
+        if (body.empty()) { fputc(')', out_); return; }
+        fputc('\n', out_);
+        ++depth_;
+        for (auto& st : body) {
+            indent();
+            if (st) st->accept(*this); else fputs("(null)", out_);
+            fputc('\n', out_);
+        }
+        --depth_;
+        indent(); fputs(")", out_);
+    }
+
+    /* Shared printer for if/do bodies. */
+    void print_guarded(const char* tag, std::vector<GuardedBranch>& branches) {
+        fprintf(out_, "(%s", tag);
+        if (branches.empty()) { fputc(')', out_); return; }
+        fputc('\n', out_);
+        ++depth_;
+        for (auto& br : branches) {
+            indent();
+            fputs(br.is_else ? "(else" : "(::", out_);
+            if (br.stmts.empty()) { fputs(")", out_); fputc('\n', out_); continue; }
+            fputc('\n', out_);
+            ++depth_;
+            for (auto& st : br.stmts) {
+                indent();
+                if (st) st->accept(*this); else fputs("(null)", out_);
+                fputc('\n', out_);
+            }
+            --depth_;
+            indent(); fputs(")", out_);
+            fputc('\n', out_);
+        }
+        --depth_;
+        indent(); fputs(")", out_);
+    }
+
+    /* Shared printer for send/recv. */
+    void print_chan_op(const char* tag, ExprPtr& chan, std::vector<ExprPtr>& args) {
+        fprintf(out_, "(%s ", tag);
+        if (chan) chan->accept(*this); else fputs("?", out_);
+        for (auto& a : args) {
+            fputc(' ', out_);
+            if (a) a->accept(*this); else fputs("?", out_);
+        }
+        fputc(')', out_);
+    }
+
     FILE* out_;
     int depth_ = 0;
 };

@@ -45,21 +45,11 @@
 extern int yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 1 "src/parser.y"
+#line 8 "src/parser.y"
 
-    #include <memory>
-    #include <string>
-    #include <vector>
-    #include "ast.h"
+    #include "parser_types.h"
 
-    /* Heap-allocated helpers for non-AST lists carried through the parser.
-       Declared here (not in the implementation prologue) so they are
-       visible in parser.hpp, which the lexer includes. */
-    struct TypeList    { std::vector<p2p::TypePtr> items; };
-    struct IdentList   { std::vector<std::string>  items; };
-    struct VarDeclList { std::vector<std::unique_ptr<p2p::VarDecl>> items; };
-
-#line 63 "build/parser.hpp"
+#line 53 "build/parser.hpp"
 
 /* Token kinds.  */
 #ifndef YYTOKENTYPE
@@ -128,9 +118,12 @@ extern int yydebug;
     LTL_UNTIL = 313,               /* LTL_UNTIL  */
     START_PROGRAM = 314,           /* START_PROGRAM  */
     START_EXPR = 315,              /* START_EXPR  */
-    UMINUS = 316,                  /* UMINUS  */
-    UNOT = 317,                    /* UNOT  */
-    PREFIX_INCDEC = 318            /* PREFIX_INCDEC  */
+    START_STMT_BLOCK = 316,        /* START_STMT_BLOCK  */
+    LOW_PREC = 317,                /* LOW_PREC  */
+    UMINUS = 318,                  /* UMINUS  */
+    UNOT = 319,                    /* UNOT  */
+    PREFIX_INCDEC = 320,           /* PREFIX_INCDEC  */
+    STMT_AFTER_DECL = 321          /* STMT_AFTER_DECL  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -139,20 +132,25 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 113 "src/parser.y"
+#line 128 "src/parser.y"
 
-    int               int_val;
-    char*             str_val;
-    p2p::Expr*        expr;
-    p2p::Type*        type;
-    p2p::VarDecl*     var_decl;
-    p2p::Node*        node;
-    TypeList*         type_list;
-    IdentList*        ident_list;
-    VarDeclList*      vardecl_list;
-    p2p::LtlFormula*  ltl;
+    int                    int_val;
+    char*                  str_val;
+    p2p::Expr*             expr;
+    p2p::Type*             type;
+    p2p::VarDecl*          var_decl;
+    p2p::Stmt*             stmt;
+    p2p::Node*             node;
+    TypeList*              type_list;
+    IdentList*             ident_list;
+    VarDeclList*           vardecl_list;
+    StmtList*              stmt_list;
+    ExprList*              expr_list;
+    BranchList*            branch_list;
+    p2p::GuardedBranch*    branch;
+    p2p::LtlFormula*       ltl;
 
-#line 156 "build/parser.hpp"
+#line 154 "build/parser.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
