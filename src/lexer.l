@@ -26,8 +26,9 @@ static bool trace_tokens() {
 /* When set by main(), the lexer emits one START_* marker before the real
    token stream. This lets the grammar pick between two start symbols. */
 extern int g_parse_mode;
-#define PARSE_PROGRAM 0
-#define PARSE_EXPR    1
+#define PARSE_PROGRAM     0
+#define PARSE_EXPR        1
+#define PARSE_STMT_BLOCK  2
 static bool g_start_emitted = false;
 
 /* Reset between runs */
@@ -54,7 +55,8 @@ ID          {LETTER}({LETTER}|{DIGIT})*
     /* Emit the start-symbol marker before any other token. */
     if (!g_start_emitted) {
         g_start_emitted = true;
-        if (g_parse_mode == PARSE_EXPR) return START_EXPR;
+        if (g_parse_mode == PARSE_EXPR)       return START_EXPR;
+        if (g_parse_mode == PARSE_STMT_BLOCK) return START_STMT_BLOCK;
         return START_PROGRAM;
     }
 %}
