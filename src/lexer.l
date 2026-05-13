@@ -19,6 +19,8 @@ static bool trace_tokens() {
     return v == 1;
 }
 
+#define yylex yylex_raw
+
 #define TR(name) do { if (trace_tokens()) \
     fprintf(stderr, "[tok] line %d: %s '%s'\n", yylineno, #name, yytext); \
 } while (0)
@@ -30,6 +32,14 @@ extern int g_parse_mode;
 #define PARSE_EXPR        1
 #define PARSE_STMT_BLOCK  2
 static bool g_start_emitted = false;
+
+/* Tracks {} nesting depth so ASI in the parser wrapper applies only
+   inside procedure bodies, not at the top level. */
+int g_brace_depth = 0;
+
+/* Set to 1 by newline matches; the parser's yylex wrapper reads and
+   resets this to detect statement boundaries for ASI. */
+int g_saw_newline = 0;
 
 /* Reset between runs */
 extern "C" void p2p_reset_lexer_state() {
@@ -63,7 +73,10 @@ ID          {LETTER}({LETTER}|{DIGIT})*
 
     /* Whitespace */
 [ \t\r]+        { /* skip */ }
-\n              { /* yylineno bumps automatically */ }
+\n              {
+                    /* Track newlines for ASI in the parser's yylex wrapper. */
+                    g_saw_newline = 1;
+                }
 
     /* Comments */
 "//"[^\n]*      { /* line comment */ }
@@ -193,6 +206,8 @@ ID          {LETTER}({LETTER}|{DIGIT})*
 
     /* Single-character tokens */
 [!?=+\-*/%<>(){}\[\],;:@.]   {
+                                if (yytext[0] == '{') g_brace_depth++;
+                                else if (yytext[0] == '}' && g_brace_depth > 0) g_brace_depth--;
                                 if (trace_tokens())
                                     fprintf(stderr, "[tok] line %d: CHAR '%c'\n",
                                             yylineno, yytext[0]);

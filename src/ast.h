@@ -8,6 +8,8 @@ namespace p2p {
 class Module;
 class DefineDecl;
 class ProctypeDecl;
+class InlineDecl;
+class InitDecl;
 
 /* Expressions */
 class IntLiteral;
@@ -58,6 +60,8 @@ public:
     virtual void visit(Module&)       = 0;
     virtual void visit(DefineDecl&)   = 0;
     virtual void visit(ProctypeDecl&) = 0;
+    virtual void visit(InlineDecl&)   = 0;
+    virtual void visit(InitDecl&)     = 0;
 
     /* Expressions */
     virtual void visit(IntLiteral&)      = 0;
@@ -437,6 +441,41 @@ public:
 class LocalVarDeclStmt : public Stmt {
 public:
     std::unique_ptr<VarDecl> decl;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+/* Procedures: proctype, inline, init */
+
+/* A formal parameter of a proctype or inline.
+   For inline, the type is omitted in source — we model it with kind=Int
+   as a no-op, since inline params are untyped in Promela. */
+struct Param {
+    TypePtr     type;       /* nullptr for inline parameters */
+    std::string name;
+};
+
+class ProctypeDecl : public Node {
+public:
+    std::string             name;
+    /* `active` parameters: instance_count == 0 means a regular proctype;
+       instance_count >= 1 means `active [N] proctype` (1 if just `active`). */
+    int                     instance_count = 0;
+    std::vector<Param>      params;
+    std::vector<StmtPtr>    body;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+class InlineDecl : public Node {
+public:
+    std::string             name;
+    std::vector<Param>      params;     /* untyped: each param has type == nullptr */
+    std::vector<StmtPtr>    body;
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+class InitDecl : public Node {
+public:
+    std::vector<StmtPtr>    body;
     void accept(Visitor& v) override { v.visit(*this); }
 };
 

@@ -16,3 +16,4 @@ struct VarDeclList { std::vector<std::unique_ptr<p2p::VarDecl>> items; };
 struct StmtList    { std::vector<p2p::StmtPtr> items; };
 struct ExprList    { std::vector<p2p::ExprPtr> items; };
 struct BranchList  { std::vector<p2p::GuardedBranch> items; };
+struct ParamList   { std::vector<p2p::Param> items; };

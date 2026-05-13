@@ -17,7 +17,8 @@
 #include <vector>
 #include "ast.h"
 
-extern int yylex();
+extern int yylex_raw();
+int yylex();  /* defined below for ASI */
 extern int yylineno;
 extern FILE* yyin;
 void yyerror(const char* s);
@@ -141,6 +142,7 @@ static p2p::Stmt* wrap_expr_stmt(p2p::Expr* e) {
     BranchList*            branch_list;
     p2p::GuardedBranch*    branch;
     p2p::LtlFormula*       ltl;
+    ParamList*             param_list;
 }
 
 /* Literals */
@@ -176,15 +178,17 @@ static p2p::Stmt* wrap_expr_stmt(p2p::Expr* e) {
 %token START_PROGRAM START_EXPR START_STMT_BLOCK
 
 /* Non-terminal types */
-%type <expr>         expr primary ltl_atom
+%type <expr>         expr primary ltl_atom expr_no_ternary
 %type <type>         basic_type chan_type local_basic_type
 %type <var_decl>     declarator field_one
 %type <node>         top_decl typedef_decl mtype_decl ltl_decl chan_decl_stmt
 %type <type_list>    type_list
-%type <ident_list>   ident_list
+%type <ident_list>   ident_list ident_list_opt
 %type <vardecl_list> declarator_list var_decl_stmt
 %type <vardecl_list> field_decl_list field_decl_stmt field_decl_one_or_more
 %type <ltl>          ltl_formula ltl_unary
+%type <node>         proctype_decl inline_decl init_decl
+%type <param_list>   param_list param_group params_opt
 
 /* Statements */
 %type <stmt>         stmt simple_stmt assign_or_expr_stmt
@@ -243,6 +247,9 @@ top_decl:
     | typedef_decl         { $$ = $1; }
     | mtype_decl           { $$ = $1; }
     | ltl_decl             { $$ = $1; }
+    | proctype_decl        { $$ = $1; }
+    | inline_decl          { $$ = $1; }
+    | init_decl            { $$ = $1; }
     ;
 
 /* Regular variable declaration:  type d1, d2, d3; */
@@ -584,6 +591,132 @@ ltl_atom:
     | '-' ltl_atom    %prec UMINUS      { $$ = make_un(p2p::UnaryOp::Neg, $2); }
     ;
 
+
+/* Procedures */
+
+/* proctype Name(params) { body }
+   active proctype Name(params) { body }
+   active [N] proctype Name(params) { body }                 */
+proctype_decl:
+      K_PROCTYPE IDENT '(' params_opt ')' stmt_block
+        {
+            auto* p = new p2p::ProctypeDecl();
+            p->name = $2; free($2);
+            p->params = std::move($4->items);
+            delete $4;
+            p->body = std::move($6->items);
+            delete $6;
+            $$ = p;
+        }
+    | K_ACTIVE K_PROCTYPE IDENT '(' params_opt ')' stmt_block
+        {
+            auto* p = new p2p::ProctypeDecl();
+            p->name = $3; free($3);
+            p->instance_count = 1;
+            p->params = std::move($5->items);
+            delete $5;
+            p->body = std::move($7->items);
+            delete $7;
+            $$ = p;
+        }
+    | K_ACTIVE '[' INT_LITERAL ']' K_PROCTYPE IDENT '(' params_opt ')' stmt_block
+        {
+            auto* p = new p2p::ProctypeDecl();
+            p->name = $6; free($6);
+            p->instance_count = $3 > 0 ? $3 : 1;
+            p->params = std::move($8->items);
+            delete $8;
+            p->body = std::move($10->items);
+            delete $10;
+            $$ = p;
+        }
+    ;
+
+/* inline Name(params) { body }
+   Parameters in inline declarations are untyped (just identifiers). */
+inline_decl:
+    K_INLINE IDENT '(' ident_list_opt ')' stmt_block
+        {
+            auto* d = new p2p::InlineDecl();
+            d->name = $2; free($2);
+            /* convert IdentList into ParamList with untyped Params */
+            for (auto& n : $4->items) {
+                p2p::Param p;
+                p.name = std::move(n);
+                d->params.push_back(std::move(p));
+            }
+            delete $4;
+            d->body = std::move($6->items);
+            delete $6;
+            $$ = d;
+        }
+    ;
+
+/* init { body } */
+init_decl:
+    K_INIT stmt_block
+        {
+            auto* d = new p2p::InitDecl();
+            d->body = std::move($2->items);
+            delete $2;
+            $$ = d;
+        }
+    ;
+
+/* Possibly-empty parameter list.
+   Promela uses ';' between groups of params of the same type, and ','
+   within a group: (byte a, b; int c; chan x). */
+params_opt:
+      /* empty */              { $$ = new ParamList(); }
+    | param_list               { $$ = $1; }
+    ;
+
+param_list:
+      param_group              { $$ = $1; }
+    | param_list ';' param_group
+        {
+            for (auto& p : $3->items) $1->items.push_back(std::move(p));
+            delete $3;
+            $$ = $1;
+        }
+    ;
+
+/* A single group of same-typed parameters, e.g.  byte a, b  or  chan c */
+param_group:
+      basic_type ident_list
+        {
+            auto* pl = new ParamList();
+            for (auto& n : $2->items) {
+                p2p::Param p;
+                p.type.reset(clone_type(*$1));
+                p.name = std::move(n);
+                pl->items.push_back(std::move(p));
+            }
+            delete $2;
+            delete $1;
+            $$ = pl;
+        }
+    | chan_type ident_list
+        {
+            auto* pl = new ParamList();
+            for (auto& n : $2->items) {
+                p2p::Param p;
+                p.type.reset(clone_type(*$1));
+                p.name = std::move(n);
+                pl->items.push_back(std::move(p));
+            }
+            delete $2;
+            delete $1;
+            $$ = pl;
+        }
+    ;
+
+/* Optional comma-separated list of bare identifiers (for inline params). */
+ident_list_opt:
+      /* empty */              { $$ = new IdentList(); }
+    | ident_list               { $$ = $1; }
+    ;
+
 /* Expression-only parsing entry (test mode). */
 expr_body:
     expr ';'    { g_expr_result = $1; }
@@ -601,28 +734,31 @@ stmt_body:
 /* A brace-delimited block. The trailing separator is optional. */
 stmt_block:
       '{' '}'
-        {
-            $$ = new StmtList();
-        }
+        { $$ = new StmtList(); }
     | '{' stmt_seq '}'
-        {
-            $$ = $2;
-        }
+        { $$ = $2; }
     | '{' stmt_seq ';' '}'
-        {
-            $$ = $2;
-        }
+        { $$ = $2; }
     ;
 
-/* A non-empty sequence of statements separated by ';' or '->'.
-   Local declarations may also chain without an explicit separator,
-   because the trailing ';' is already consumed inside the declaration. */
+/* A non-empty sequence of statements. Separators between two statements
+   are normally ';' or '->'. After a "self-terminated" statement (a local
+   declaration that already consumed its ';', or a block statement that
+   ends with a closing keyword / '}'), the separator is optional. */
 stmt_seq:
       stmt
         {
             auto* l = new StmtList();
             l->items.emplace_back($1);
             $$ = l;
+        }
+    | local_var_decl_stmt
+        {
+            $$ = $1;
+        }
+    | local_chan_decl_stmt
+        {
+            $$ = $1;
         }
     | stmt_seq ';' stmt
         {
@@ -632,14 +768,6 @@ stmt_seq:
     | stmt_seq OP_ARROW stmt
         {
             $1->items.emplace_back($3);
-            $$ = $1;
-        }
-    | local_var_decl_stmt
-        {
-            $$ = $1;
-        }
-    | local_chan_decl_stmt
-        {
             $$ = $1;
         }
     | stmt_seq ';' local_var_decl_stmt
@@ -660,6 +788,13 @@ stmt_seq:
             delete $3;
             $$ = $1;
         }
+    | stmt_seq OP_ARROW local_chan_decl_stmt
+        {
+            for (auto& s : $3->items) $1->items.emplace_back(std::move(s));
+            delete $3;
+            $$ = $1;
+        }
+    /* Self-terminated local declarations chain without a separator. */
     | stmt_seq local_var_decl_stmt
         {
             for (auto& s : $2->items) $1->items.emplace_back(std::move(s));
@@ -672,14 +807,15 @@ stmt_seq:
             delete $2;
             $$ = $1;
         }
-    | stmt_seq local_var_decl_stmt stmt   %prec STMT_AFTER_DECL
+    /* Local declaration may be followed by an ordinary stmt without sep. */
+    | stmt_seq local_var_decl_stmt stmt
         {
             for (auto& s : $2->items) $1->items.emplace_back(std::move(s));
             delete $2;
             $1->items.emplace_back($3);
             $$ = $1;
         }
-    | stmt_seq local_chan_decl_stmt stmt   %prec STMT_AFTER_DECL
+    | stmt_seq local_chan_decl_stmt stmt
         {
             for (auto& s : $2->items) $1->items.emplace_back(std::move(s));
             delete $2;
@@ -977,13 +1113,13 @@ expr_args:
     ;
 
 expr_args_nonempty:
-      expr
+      expr_no_ternary
         {
             auto* l = new ExprList();
             l->items.emplace_back($1);
             $$ = l;
         }
-    | expr_args_nonempty ',' expr
+    | expr_args_nonempty ',' expr_no_ternary
         {
             $1->items.emplace_back($3);
             $$ = $1;
@@ -1019,6 +1155,31 @@ expr:
             t->else_expr.reset($5);
             $$ = t;
         }
+    ;
+
+/* Same as expr but without the Promela ternary at the top level.
+   Used wherever we need to forbid the bare  cond -> then : else  form
+   so that '->' cannot be mistaken for it (e.g. as separator after
+   send/recv arguments, or as guard separator in a ::-branch). */
+expr_no_ternary:
+      primary                            { $$ = $1; }
+    | expr_no_ternary '+' expr_no_ternary  { $$ = make_bin(p2p::BinaryOp::Add, $1, $3); }
+    | expr_no_ternary '-' expr_no_ternary  { $$ = make_bin(p2p::BinaryOp::Sub, $1, $3); }
+    | expr_no_ternary '*' expr_no_ternary  { $$ = make_bin(p2p::BinaryOp::Mul, $1, $3); }
+    | expr_no_ternary '/' expr_no_ternary  { $$ = make_bin(p2p::BinaryOp::Div, $1, $3); }
+    | expr_no_ternary '%' expr_no_ternary  { $$ = make_bin(p2p::BinaryOp::Mod, $1, $3); }
+    | expr_no_ternary OP_SHL expr_no_ternary { $$ = make_bin(p2p::BinaryOp::Shl, $1, $3); }
+    | expr_no_ternary OP_SHR expr_no_ternary { $$ = make_bin(p2p::BinaryOp::Shr, $1, $3); }
+    | expr_no_ternary '<' expr_no_ternary  { $$ = make_bin(p2p::BinaryOp::Lt,  $1, $3); }
+    | expr_no_ternary '>' expr_no_ternary  { $$ = make_bin(p2p::BinaryOp::Gt,  $1, $3); }
+    | expr_no_ternary OP_LE expr_no_ternary { $$ = make_bin(p2p::BinaryOp::Le, $1, $3); }
+    | expr_no_ternary OP_GE expr_no_ternary { $$ = make_bin(p2p::BinaryOp::Ge, $1, $3); }
+    | expr_no_ternary OP_EQ expr_no_ternary { $$ = make_bin(p2p::BinaryOp::Eq, $1, $3); }
+    | expr_no_ternary OP_NEQ expr_no_ternary { $$ = make_bin(p2p::BinaryOp::Neq, $1, $3); }
+    | expr_no_ternary OP_AND expr_no_ternary { $$ = make_bin(p2p::BinaryOp::And, $1, $3); }
+    | expr_no_ternary OP_OR expr_no_ternary  { $$ = make_bin(p2p::BinaryOp::Or, $1, $3); }
+    | '-' expr_no_ternary  %prec UMINUS    { $$ = make_un(p2p::UnaryOp::Neg, $2); }
+    | '!' expr_no_ternary  %prec UNOT      { $$ = make_un(p2p::UnaryOp::Not, $2); }
     ;
 
 primary:
@@ -1067,4 +1228,51 @@ primary:
 
 void yyerror(const char* s) {
     fprintf(stderr, "Parse error at line %d: %s\n", yylineno, s);
+}
+
+extern int g_brace_depth;
+extern int g_saw_newline;
+
+/* Automatic Semicolon Insertion. Inside a procedure body (g_brace_depth > 0),
+   when the previous token was a block terminator ('}' / fi / od) and the
+   current token starts a new statement on a new line, inject a virtual ';'
+   so the grammar can apply  stmt_seq ';' stmt  uniformly. ASI is disabled
+   at the top level so that declarations like  } byte x; ... } byte y;
+   are not corrupted by spurious ';' insertions. */
+int yylex() {
+    static int prev_token = 0;
+    static int pending = 0;
+
+    if (pending != 0) {
+        int t = pending;
+        pending = 0;
+        prev_token = t;
+        g_saw_newline = 0;
+        return t;
+    }
+
+    int t = yylex_raw();
+    int had_newline = g_saw_newline;
+    g_saw_newline = 0;
+
+    bool prev_closes_block =
+        prev_token == '}'   ||
+        prev_token == K_FI  ||
+        prev_token == K_OD;
+
+    bool curr_starts_stmt =
+        t == IDENT      || t == K_IF       || t == K_DO       || t == K_ATOMIC ||
+        t == K_D_STEP   || t == K_FOR      || t == K_SELECT   || t == K_RUN    ||
+        t == K_BREAK    || t == K_SKIP     || t == K_GOTO     ||
+        t == T_BYTE     || t == T_INT      || t == T_BOOL     || t == T_BIT    ||
+        t == T_SHORT    || t == T_UNSIGNED || t == T_MTYPE    || t == T_CHAN;
+
+    if (g_brace_depth > 0 && prev_closes_block && had_newline && curr_starts_stmt) {
+        pending = t;
+        prev_token = ';';
+        return ';';
+    }
+
+    prev_token = t;
+    return t;
 }
