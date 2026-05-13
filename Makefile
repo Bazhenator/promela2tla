@@ -12,8 +12,7 @@ PARSER_H  := $(BUILD_DIR)/parser.hpp
 LEXER_C   := $(BUILD_DIR)/lexer.cpp
 
 SRCS := $(SRC_DIR)/main.cpp $(SRC_DIR)/ast.cpp
-OBJS := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o) \
-        $(BUILD_DIR)/parser.o $(BUILD_DIR)/lexer.o
+OBJS = build/main.o build/ast.o build/parser.o build/lexer.o build/typedef_table.o
 
 .PHONY: all clean test
 
@@ -53,3 +52,6 @@ clean:
 
 test: $(BIN)
 	./$(BIN) tests/00_empty.pml
+
+build/typedef_table.o: src/typedef_table.cpp src/typedef_table.h
+	$(CXX) $(CXXFLAGS) -Isrc -Ibuild -c src/typedef_table.cpp -o build/typedef_table.o

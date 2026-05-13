@@ -7,6 +7,7 @@
 
 %code requires {
     #include "parser_types.h"
+    #include "typedef_table.h"
 }
 
 %{
@@ -148,6 +149,7 @@ static p2p::Stmt* wrap_expr_stmt(p2p::Expr* e) {
 /* Literals */
 %token <int_val> INT_LITERAL
 %token <str_val> IDENT
+%token <str_val> TYPENAME
 
 /* Type keywords */
 %token T_BYTE T_INT T_BOOL T_BIT T_SHORT T_UNSIGNED
@@ -308,7 +310,7 @@ basic_type:
             free($3);
             $$ = t;
         }
-    | IDENT                { $$ = make_named($1); free($1); }
+    | TYPENAME             { $$ = make_named($1); free($1); }
     ;
 
 /* Same as basic_type, but without the `IDENT` (named-type) alternative.
@@ -332,6 +334,7 @@ local_basic_type:
             free($3);
             $$ = t;
         }
+    | TYPENAME             { $$ = make_named($1); free($1); }
     ;
 
 declarator_list:
@@ -398,7 +401,9 @@ typedef_decl:
     K_TYPEDEF IDENT '{' field_decl_list '}' ';'
         {
             auto* td = new p2p::TypedefDecl();
-            td->name = $2; free($2);
+            td->name = $2;
+            p2p::typedef_register(td->name);   /* <-- добавь эту строку */
+            free($2);
             td->fields = std::move($4->items);
             delete $4;
             $$ = td;
@@ -760,6 +765,22 @@ stmt_seq:
         {
             $$ = $1;
         }
+    | local_var_decl_stmt stmt
+        {
+            auto* l = new StmtList();
+            for (auto& s : $1->items) l->items.emplace_back(std::move(s));
+            delete $1;
+            l->items.emplace_back($2);
+            $$ = l;
+        }
+    | local_chan_decl_stmt stmt
+        {
+            auto* l = new StmtList();
+            for (auto& s : $1->items) l->items.emplace_back(std::move(s));
+            delete $1;
+            l->items.emplace_back($2);
+            $$ = l;
+        }
     | stmt_seq ';' stmt
         {
             $1->items.emplace_back($3);
@@ -782,6 +803,20 @@ stmt_seq:
             delete $3;
             $$ = $1;
         }
+    | stmt_seq ';' local_var_decl_stmt stmt
+        {
+            for (auto& s : $3->items) $1->items.emplace_back(std::move(s));
+            delete $3;
+            $1->items.emplace_back($4);
+            $$ = $1;
+        }
+    | stmt_seq ';' local_chan_decl_stmt stmt
+        {
+            for (auto& s : $3->items) $1->items.emplace_back(std::move(s));
+            delete $3;
+            $1->items.emplace_back($4);
+            $$ = $1;
+        }
     | stmt_seq OP_ARROW local_var_decl_stmt
         {
             for (auto& s : $3->items) $1->items.emplace_back(std::move(s));
@@ -792,6 +827,20 @@ stmt_seq:
         {
             for (auto& s : $3->items) $1->items.emplace_back(std::move(s));
             delete $3;
+            $$ = $1;
+        }
+    | stmt_seq OP_ARROW local_var_decl_stmt stmt
+        {
+            for (auto& s : $3->items) $1->items.emplace_back(std::move(s));
+            delete $3;
+            $1->items.emplace_back($4);
+            $$ = $1;
+        }
+    | stmt_seq OP_ARROW local_chan_decl_stmt stmt
+        {
+            for (auto& s : $3->items) $1->items.emplace_back(std::move(s));
+            delete $3;
+            $1->items.emplace_back($4);
             $$ = $1;
         }
     /* Self-terminated local declarations chain without a separator. */

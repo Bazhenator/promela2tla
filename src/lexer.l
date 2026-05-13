@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include "ast.h"
 #include "parser.hpp"
+#include "typedef_table.h"
 
 /* Macro table populated by #define directives. */
 static std::unordered_map<std::string, std::string> g_defines;
@@ -199,6 +200,15 @@ ID          {LETTER}({LETTER}|{DIGIT})*
                         }
                     } else {
                         yylval.str_val = strdup(yytext);
+                        /* Disambiguate IDENT vs TYPENAME:
+                           an identifier previously introduced by a typedef
+                           is returned as TYPENAME so the parser can use it
+                           as a type without ambiguity with statement-leading
+                           identifiers. */
+                        if (p2p::typedef_is_known(yytext)) {
+                            TR(TYPENAME);
+                            return TYPENAME;
+                        }
                         TR(IDENT);
                         return IDENT;
                     }
