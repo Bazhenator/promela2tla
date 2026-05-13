@@ -12,7 +12,9 @@ PARSER_H  := $(BUILD_DIR)/parser.hpp
 LEXER_C   := $(BUILD_DIR)/lexer.cpp
 
 SRCS := $(SRC_DIR)/main.cpp $(SRC_DIR)/ast.cpp
-OBJS = build/main.o build/ast.o build/parser.o build/lexer.o build/typedef_table.o
+OBJS = build/main.o build/ast.o build/parser.o build/lexer.o \
+       build/typedef_table.o build/symbol_table.o build/resolver.o
+
 
 .PHONY: all clean test
 
@@ -55,3 +57,9 @@ test: $(BIN)
 
 build/typedef_table.o: src/typedef_table.cpp src/typedef_table.h
 	$(CXX) $(CXXFLAGS) -Isrc -Ibuild -c src/typedef_table.cpp -o build/typedef_table.o
+
+build/symbol_table.o: src/symbol_table.cpp src/symbol_table.h src/ast.h
+	$(CXX) $(CXXFLAGS) -Isrc -Ibuild -c src/symbol_table.cpp -o build/symbol_table.o
+
+build/resolver.o: src/resolver.cpp src/resolver.h src/symbol_table.h src/ast.h
+	$(CXX) $(CXXFLAGS) -Isrc -Ibuild -c src/resolver.cpp -o build/resolver.o
