@@ -1,0 +1,3 @@
+proctype p() {
+    goto nowhere
+}

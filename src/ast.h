@@ -136,6 +136,8 @@ class Type {
 public:
     BasicTypeKind kind = BasicTypeKind::Int;
 
+    Node* resolved = nullptr;   /* set by resolver: points to VarDecl / Param / etc. */
+
     /* For Named: the user-defined type name (e.g. "twoDimArray"). */
     std::string named;
 
@@ -166,6 +168,7 @@ public:
 class IdentExpr : public Expr {
 public:
     std::string name;
+    Node* resolved = nullptr;   /* set by resolver: points to VarDecl / Param / etc. */
     explicit IdentExpr(std::string n) : name(std::move(n)) {}
     void accept(Visitor& v) override { v.visit(*this); }
 };
@@ -397,6 +400,7 @@ public:
    autotune.pml it appears only at statement position. */
 class RunStmt : public Stmt {
 public:
+    Node* resolved = nullptr;   /* set by resolver: points to ProctypeDecl */
     std::string           name;
     std::vector<ExprPtr>  args;
     void accept(Visitor& v) override { v.visit(*this); }
@@ -414,6 +418,7 @@ public:
 
 class GotoStmt : public Stmt {
 public:
+    Node* resolved = nullptr;   /* set by resolver: points to LabeledStmt */
     std::string label;
     void accept(Visitor& v) override { v.visit(*this); }
 };
@@ -431,6 +436,7 @@ public:
    carry no return value in Promela; treated as a statement here. */
 class InlineCallStmt : public Stmt {
 public:
+    Node* resolved = nullptr;   /* set by resolver: points to InlineDecl */
     std::string           name;
     std::vector<ExprPtr>  args;
     void accept(Visitor& v) override { v.visit(*this); }

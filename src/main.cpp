@@ -3,6 +3,7 @@
 #include <cstring>
 #include "ast.h"
 #include "parser.hpp"
+#include "resolver.h"
 
 extern int yyparse();
 extern int yylex();
@@ -46,6 +47,20 @@ static int run_program(const char* path, bool print_tree) {
         return 1;
     }
     fprintf(stderr, "Parsing OK. Root module created.\n");
+
+    /* Name resolution. */
+    if (g_root) {
+        auto errs = p2p::resolve_names(*g_root);
+        for (auto& e : errs) {
+            fprintf(stderr, "%s:%d:%d: error: %s\n", path, e.line, e.column, e.message.c_str());
+        }
+        if (!errs.empty()) {
+            fprintf(stderr, "Name resolution: %zu error(s)\n", errs.size());
+        } else {
+            fprintf(stderr, "Name resolution OK.\n");
+        }
+    }
+
     if (print_tree && g_root) {
         p2p::print_ast(*g_root, stdout);
     }
