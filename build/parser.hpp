@@ -122,8 +122,7 @@ extern int yydebug;
     LOW_PREC = 317,                /* LOW_PREC  */
     UMINUS = 318,                  /* UMINUS  */
     UNOT = 319,                    /* UNOT  */
-    PREFIX_INCDEC = 320,           /* PREFIX_INCDEC  */
-    STMT_AFTER_DECL = 321          /* STMT_AFTER_DECL  */
+    PREFIX_INCDEC = 320            /* PREFIX_INCDEC  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -132,7 +131,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 128 "src/parser.y"
+#line 129 "src/parser.y"
 
     int                    int_val;
     char*                  str_val;
@@ -149,6 +148,7 @@ union YYSTYPE
     BranchList*            branch_list;
     p2p::GuardedBranch*    branch;
     p2p::LtlFormula*       ltl;
+    ParamList*             param_list;
 
 #line 154 "build/parser.hpp"
 

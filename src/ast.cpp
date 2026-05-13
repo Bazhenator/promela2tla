@@ -123,7 +123,70 @@ public:
 
     /* Stubs for nodes added in later sub-stages. */
     void visit(DefineDecl&)   override { fputs("(define-decl)", out_); }
-    void visit(ProctypeDecl&) override { fputs("(proctype-decl)", out_); }
+    
+    void visit(ProctypeDecl& d) override {
+        fputs("(proctype ", out_);
+        if (d.instance_count > 0) {
+            fprintf(out_, ":active %d ", d.instance_count);
+        }
+        fputs(d.name.c_str(), out_);
+        if (!d.params.empty()) {
+            fputs(" :params (", out_);
+            for (size_t i = 0; i < d.params.size(); ++i) {
+                if (i) fputs(" ", out_);
+                fprintf(out_, "(%s :type %s)",
+                    d.params[i].name.c_str(),
+                    d.params[i].type ? type_to_string(*d.params[i].type).c_str() : "?");
+            }
+            fputs(")", out_);
+        }
+        if (d.body.empty()) { fputc(')', out_); return; }
+        fputc('\n', out_);
+        ++depth_;
+        for (auto& st : d.body) {
+            indent();
+            if (st) st->accept(*this); else fputs("(null)", out_);
+            fputc('\n', out_);
+        }
+        --depth_;
+        indent(); fputs(")", out_);
+    }
+
+    void visit(InlineDecl& d) override {
+        fprintf(out_, "(inline %s", d.name.c_str());
+        if (!d.params.empty()) {
+            fputs(" :params (", out_);
+            for (size_t i = 0; i < d.params.size(); ++i) {
+                if (i) fputs(" ", out_);
+                fputs(d.params[i].name.c_str(), out_);
+            }
+            fputs(")", out_);
+        }
+        if (d.body.empty()) { fputc(')', out_); return; }
+        fputc('\n', out_);
+        ++depth_;
+        for (auto& st : d.body) {
+            indent();
+            if (st) st->accept(*this); else fputs("(null)", out_);
+            fputc('\n', out_);
+        }
+        --depth_;
+        indent(); fputs(")", out_);
+    }
+
+    void visit(InitDecl& d) override {
+        fputs("(init", out_);
+        if (d.body.empty()) { fputc(')', out_); return; }
+        fputc('\n', out_);
+        ++depth_;
+        for (auto& st : d.body) {
+            indent();
+            if (st) st->accept(*this); else fputs("(null)", out_);
+            fputc('\n', out_);
+        }
+        --depth_;
+        indent(); fputs(")", out_);
+    }
 
     void visit(IntLiteral& e) override  { fprintf(out_, "(int %ld)", e.value); }
     void visit(BoolLiteral& e) override { fprintf(out_, "(bool %s)", e.value ? "true" : "false"); }
