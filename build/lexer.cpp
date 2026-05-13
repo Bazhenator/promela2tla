@@ -620,6 +620,7 @@ char *yytext;
 #include <unordered_map>
 #include "ast.h"
 #include "parser.hpp"
+#include "typedef_table.h"
 
 /* Macro table populated by #define directives. */
 static std::unordered_map<std::string, std::string> g_defines;
@@ -660,9 +661,9 @@ extern "C" void p2p_reset_lexer_state() {
     g_defines.clear();
     g_start_emitted = false;
 }
-#line 663 "build/lexer.cpp"
+#line 664 "build/lexer.cpp"
 
-#line 665 "build/lexer.cpp"
+#line 666 "build/lexer.cpp"
 
 #define INITIAL 0
 #define BLOCK_COMMENT 1
@@ -882,11 +883,11 @@ YY_DECL
 		}
 
 	{
-#line 62 "src/lexer.l"
+#line 63 "src/lexer.l"
 
 
 
-#line 66 "src/lexer.l"
+#line 67 "src/lexer.l"
     /* Emit the start-symbol marker before any other token. */
     if (!g_start_emitted) {
         g_start_emitted = true;
@@ -897,7 +898,7 @@ YY_DECL
 
 
     /* Whitespace */
-#line 900 "build/lexer.cpp"
+#line 901 "build/lexer.cpp"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -966,13 +967,13 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 76 "src/lexer.l"
+#line 77 "src/lexer.l"
 { /* skip */ }
 	YY_BREAK
 case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
-#line 77 "src/lexer.l"
+#line 78 "src/lexer.l"
 {
                     /* Track newlines for ASI in the parser's yylex wrapper. */
                     g_saw_newline = 1;
@@ -981,47 +982,47 @@ YY_RULE_SETUP
 /* Comments */
 case 3:
 YY_RULE_SETUP
-#line 83 "src/lexer.l"
+#line 84 "src/lexer.l"
 { /* line comment */ }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 84 "src/lexer.l"
+#line 85 "src/lexer.l"
 { BEGIN(BLOCK_COMMENT); }
 	YY_BREAK
 
 case 5:
 YY_RULE_SETUP
-#line 86 "src/lexer.l"
+#line 87 "src/lexer.l"
 { BEGIN(INITIAL); }
 	YY_BREAK
 case 6:
 /* rule 6 can match eol */
 YY_RULE_SETUP
-#line 87 "src/lexer.l"
+#line 88 "src/lexer.l"
 { /* track lines */ }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 88 "src/lexer.l"
+#line 89 "src/lexer.l"
 { /* skip */ }
 	YY_BREAK
 
 /* Preprocessor: #define NAME VALUE */
 case 8:
 YY_RULE_SETUP
-#line 92 "src/lexer.l"
+#line 93 "src/lexer.l"
 { BEGIN(DEFINE_NAME); }
 	YY_BREAK
 
 case 9:
 YY_RULE_SETUP
-#line 94 "src/lexer.l"
+#line 95 "src/lexer.l"
 { /* skip */ }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 95 "src/lexer.l"
+#line 96 "src/lexer.l"
 {
                     static std::string name;
                     name = yytext;
@@ -1032,19 +1033,19 @@ YY_RULE_SETUP
 case 11:
 /* rule 11 can match eol */
 YY_RULE_SETUP
-#line 101 "src/lexer.l"
+#line 102 "src/lexer.l"
 { BEGIN(INITIAL); }
 	YY_BREAK
 
 
 case 12:
 YY_RULE_SETUP
-#line 104 "src/lexer.l"
+#line 105 "src/lexer.l"
 { /* leading whitespace */ }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 105 "src/lexer.l"
+#line 106 "src/lexer.l"
 {
                     for (auto& kv : g_defines) {
                         if (kv.second.empty()) {
@@ -1063,284 +1064,284 @@ YY_RULE_SETUP
 case 14:
 /* rule 14 can match eol */
 YY_RULE_SETUP
-#line 119 "src/lexer.l"
+#line 120 "src/lexer.l"
 { BEGIN(INITIAL); }
 	YY_BREAK
 
 /* Multi-character operators */
 case 15:
 YY_RULE_SETUP
-#line 123 "src/lexer.l"
+#line 124 "src/lexer.l"
 { TR(ARROW);       return OP_ARROW; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 124 "src/lexer.l"
+#line 125 "src/lexer.l"
 { TR(DCOLON);      return OP_DCOLON; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 125 "src/lexer.l"
+#line 126 "src/lexer.l"
 { TR(DOTDOT);      return OP_DOTDOT; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 126 "src/lexer.l"
+#line 127 "src/lexer.l"
 { TR(INC);         return OP_INC; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 127 "src/lexer.l"
+#line 128 "src/lexer.l"
 { TR(DEC);         return OP_DEC; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 128 "src/lexer.l"
+#line 129 "src/lexer.l"
 { TR(AND);         return OP_AND; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 129 "src/lexer.l"
+#line 130 "src/lexer.l"
 { TR(OR);          return OP_OR; }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 130 "src/lexer.l"
+#line 131 "src/lexer.l"
 { TR(EQ);          return OP_EQ; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 131 "src/lexer.l"
+#line 132 "src/lexer.l"
 { TR(NEQ);         return OP_NEQ; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 132 "src/lexer.l"
+#line 133 "src/lexer.l"
 { TR(LE);          return OP_LE; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 133 "src/lexer.l"
+#line 134 "src/lexer.l"
 { TR(GE);          return OP_GE; }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 134 "src/lexer.l"
+#line 135 "src/lexer.l"
 { TR(SHL);         return OP_SHL; }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 135 "src/lexer.l"
+#line 136 "src/lexer.l"
 { TR(SHR);         return OP_SHR; }
 	YY_BREAK
 /* LTL operators */
 case 28:
 YY_RULE_SETUP
-#line 138 "src/lexer.l"
+#line 139 "src/lexer.l"
 { TR(LTL_ALWAYS);     return LTL_ALWAYS; }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 139 "src/lexer.l"
+#line 140 "src/lexer.l"
 { TR(LTL_EVENTUALLY); return LTL_EVENTUALLY; }
 	YY_BREAK
 /* Type keywords */
 case 30:
 YY_RULE_SETUP
-#line 142 "src/lexer.l"
+#line 143 "src/lexer.l"
 { TR(T_BYTE);     return T_BYTE; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 143 "src/lexer.l"
+#line 144 "src/lexer.l"
 { TR(T_INT);      return T_INT; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 144 "src/lexer.l"
+#line 145 "src/lexer.l"
 { TR(T_BOOL);     return T_BOOL; }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 145 "src/lexer.l"
+#line 146 "src/lexer.l"
 { TR(T_BIT);      return T_BIT; }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 146 "src/lexer.l"
+#line 147 "src/lexer.l"
 { TR(T_SHORT);    return T_SHORT; }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 147 "src/lexer.l"
+#line 148 "src/lexer.l"
 { TR(T_UNSIGNED); return T_UNSIGNED; }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 148 "src/lexer.l"
+#line 149 "src/lexer.l"
 { TR(T_MTYPE);    return T_MTYPE; }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 149 "src/lexer.l"
+#line 150 "src/lexer.l"
 { TR(T_CHAN);     return T_CHAN; }
 	YY_BREAK
 /* Top-level keywords */
 case 38:
 YY_RULE_SETUP
-#line 152 "src/lexer.l"
+#line 153 "src/lexer.l"
 { TR(K_PROCTYPE); return K_PROCTYPE; }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 153 "src/lexer.l"
+#line 154 "src/lexer.l"
 { TR(K_ACTIVE);   return K_ACTIVE; }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 154 "src/lexer.l"
+#line 155 "src/lexer.l"
 { TR(K_INLINE);   return K_INLINE; }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 155 "src/lexer.l"
+#line 156 "src/lexer.l"
 { TR(K_TYPEDEF);  return K_TYPEDEF; }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 156 "src/lexer.l"
+#line 157 "src/lexer.l"
 { TR(K_LTL);      return K_LTL; }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 157 "src/lexer.l"
+#line 158 "src/lexer.l"
 { TR(K_INIT);     return K_INIT; }
 	YY_BREAK
 /* Control-flow keywords */
 case 44:
 YY_RULE_SETUP
-#line 160 "src/lexer.l"
+#line 161 "src/lexer.l"
 { TR(K_DO);       return K_DO; }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 161 "src/lexer.l"
+#line 162 "src/lexer.l"
 { TR(K_OD);       return K_OD; }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 162 "src/lexer.l"
+#line 163 "src/lexer.l"
 { TR(K_IF);       return K_IF; }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 163 "src/lexer.l"
+#line 164 "src/lexer.l"
 { TR(K_FI);       return K_FI; }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 164 "src/lexer.l"
+#line 165 "src/lexer.l"
 { TR(K_ELSE);     return K_ELSE; }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 165 "src/lexer.l"
+#line 166 "src/lexer.l"
 { TR(K_BREAK);    return K_BREAK; }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 166 "src/lexer.l"
+#line 167 "src/lexer.l"
 { TR(K_GOTO);     return K_GOTO; }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 167 "src/lexer.l"
+#line 168 "src/lexer.l"
 { TR(K_SKIP);     return K_SKIP; }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 168 "src/lexer.l"
+#line 169 "src/lexer.l"
 { TR(K_ATOMIC);   return K_ATOMIC; }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 169 "src/lexer.l"
+#line 170 "src/lexer.l"
 { TR(K_D_STEP);   return K_D_STEP; }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 170 "src/lexer.l"
+#line 171 "src/lexer.l"
 { TR(K_UNLESS);   return K_UNLESS; }
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 173 "src/lexer.l"
+#line 174 "src/lexer.l"
 { TR(K_FOR);      return K_FOR; }
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 174 "src/lexer.l"
+#line 175 "src/lexer.l"
 { TR(K_SELECT);   return K_SELECT; }
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 175 "src/lexer.l"
+#line 176 "src/lexer.l"
 { TR(K_RUN);      return K_RUN; }
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 176 "src/lexer.l"
+#line 177 "src/lexer.l"
 { TR(K_OF);       return K_OF; }
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 177 "src/lexer.l"
+#line 178 "src/lexer.l"
 { TR(K_LEN);      return K_LEN; }
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 178 "src/lexer.l"
+#line 179 "src/lexer.l"
 { TR(K_NEMPTY);   return K_NEMPTY; }
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 179 "src/lexer.l"
+#line 180 "src/lexer.l"
 { TR(K_EMPTY);    return K_EMPTY; }
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 180 "src/lexer.l"
+#line 181 "src/lexer.l"
 { TR(K_NFULL);    return K_NFULL; }
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 181 "src/lexer.l"
+#line 182 "src/lexer.l"
 { TR(K_FULL);     return K_FULL; }
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 182 "src/lexer.l"
+#line 183 "src/lexer.l"
 { TR(K_PRINTF);   return K_PRINTF; }
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 183 "src/lexer.l"
+#line 184 "src/lexer.l"
 { TR(K_ASSERT);   return K_ASSERT; }
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 184 "src/lexer.l"
+#line 185 "src/lexer.l"
 { TR(K_TRUE);     return K_TRUE; }
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 185 "src/lexer.l"
+#line 186 "src/lexer.l"
 { TR(K_FALSE);    return K_FALSE; }
 	YY_BREAK
 /* Literals */
 case 68:
 YY_RULE_SETUP
-#line 188 "src/lexer.l"
+#line 189 "src/lexer.l"
 {
                     yylval.int_val = atoi(yytext);
                     TR(INT_LITERAL);
@@ -1349,7 +1350,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 194 "src/lexer.l"
+#line 195 "src/lexer.l"
 {
                     auto it = g_defines.find(yytext);
                     if (it != g_defines.end()) {
@@ -1359,6 +1360,15 @@ YY_RULE_SETUP
                         }
                     } else {
                         yylval.str_val = strdup(yytext);
+                        /* Disambiguate IDENT vs TYPENAME:
+                           an identifier previously introduced by a typedef
+                           is returned as TYPENAME so the parser can use it
+                           as a type without ambiguity with statement-leading
+                           identifiers. */
+                        if (p2p::typedef_is_known(yytext)) {
+                            TR(TYPENAME);
+                            return TYPENAME;
+                        }
                         TR(IDENT);
                         return IDENT;
                     }
@@ -1367,7 +1377,7 @@ YY_RULE_SETUP
 /* Single-character tokens */
 case 70:
 YY_RULE_SETUP
-#line 209 "src/lexer.l"
+#line 219 "src/lexer.l"
 {
                                 if (yytext[0] == '{') g_brace_depth++;
                                 else if (yytext[0] == '}' && g_brace_depth > 0) g_brace_depth--;
@@ -1379,7 +1389,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-#line 218 "src/lexer.l"
+#line 228 "src/lexer.l"
 {
                     fprintf(stderr, "Lexer error at line %d: unexpected char '%c' (0x%02x)\n",
                             yylineno, yytext[0], (unsigned char)yytext[0]);
@@ -1387,10 +1397,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 223 "src/lexer.l"
+#line 233 "src/lexer.l"
 ECHO;
 	YY_BREAK
-#line 1393 "build/lexer.cpp"
+#line 1403 "build/lexer.cpp"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(BLOCK_COMMENT):
 case YY_STATE_EOF(DEFINE_NAME):
@@ -2410,5 +2420,5 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 223 "src/lexer.l"
+#line 233 "src/lexer.l"
 
