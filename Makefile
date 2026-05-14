@@ -14,7 +14,7 @@ LEXER_C   := $(BUILD_DIR)/lexer.cpp
 SRCS := $(SRC_DIR)/main.cpp $(SRC_DIR)/ast.cpp
 OBJS = build/main.o build/ast.o build/parser.o build/lexer.o \
        build/typedef_table.o build/symbol_table.o build/resolver.o \
-       build/type_check.o
+       build/type_check.o build/pipeline.o
 
 .PHONY: all clean test
 
@@ -66,3 +66,7 @@ build/resolver.o: src/resolver.cpp src/resolver.h src/symbol_table.h src/ast.h
 
 build/type_check.o: src/type_check.cpp src/type_check.h src/ast.h
 	$(CXX) $(CXXFLAGS) -Isrc -Ibuild -c src/type_check.cpp -o build/type_check.o
+
+build/pipeline.o: src/pipeline.cpp src/pipeline.h src/ast.h \
+                  src/resolver.h src/type_check.h src/parser_types.h
+	$(CXX) $(CXXFLAGS) -Isrc -Ibuild -c src/pipeline.cpp -o build/pipeline.o
