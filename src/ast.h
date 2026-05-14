@@ -10,6 +10,7 @@ class DefineDecl;
 class ProctypeDecl;
 class InlineDecl;
 class InitDecl;
+struct Param;
 
 /* Expressions */
 class IntLiteral;
@@ -135,6 +136,8 @@ using TypePtr = std::unique_ptr<Type>;
 class Type {
 public:
     BasicTypeKind kind = BasicTypeKind::Int;
+    bool unknown = false;   /* true: type could not be inferred (e.g. field
+                               access before 3b.2.b); checks should be lenient */
 
     Node* resolved = nullptr;   /* set by resolver: points to VarDecl / Param / etc. */
 
@@ -147,6 +150,24 @@ public:
     /* For Chan: capacity (-1 if absent) and message-field types. */
     int chan_capacity = -1;
     std::vector<TypePtr> chan_msg_types;
+
+    Type() = default;
+    Type(const Type& other) { *this = other; }
+    Type& operator=(const Type& other) {
+        kind = other.kind;
+        unknown = other.unknown; 
+        resolved = other.resolved;
+        named = other.named;
+        mtype_set = other.mtype_set;
+        chan_capacity = other.chan_capacity;
+        chan_msg_types.clear();
+        for (auto& t : other.chan_msg_types) {
+            chan_msg_types.push_back(std::make_unique<Type>(*t));
+        }
+        return *this;
+    }
+    Type(Type&&) = default;
+    Type& operator=(Type&&) = default;
 };
 
 /* Concrete expression nodes */
@@ -168,7 +189,9 @@ public:
 class IdentExpr : public Expr {
 public:
     std::string name;
-    Node* resolved = nullptr;   /* set by resolver: points to VarDecl / Param / etc. */
+    Node*  resolved = nullptr;       /* VarDecl / MtypeDecl / etc. */
+    Param* resolved_param = nullptr; /* set instead of `resolved` when the
+                                        identifier names a proctype parameter */
     explicit IdentExpr(std::string n) : name(std::move(n)) {}
     void accept(Visitor& v) override { v.visit(*this); }
 };

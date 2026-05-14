@@ -4,6 +4,7 @@
 #include "ast.h"
 #include "parser.hpp"
 #include "resolver.h"
+#include "type_check.h"
 
 extern int yyparse();
 extern int yylex();
@@ -58,6 +59,20 @@ static int run_program(const char* path, bool print_tree) {
             fprintf(stderr, "Name resolution: %zu error(s)\n", errs.size());
         } else {
             fprintf(stderr, "Name resolution OK.\n");
+        }
+    }
+
+    /* Type check. */
+    if (g_root && /* could check resolution errors first */ true) {
+        auto terrs = p2p::type_check(*g_root);
+        for (auto& e : terrs) {
+            fprintf(stderr, "%s:%d:%d: type error: %s\n",
+                path, e.line, e.column, e.message.c_str());
+        }
+        if (!terrs.empty()) {
+            fprintf(stderr, "Type check: %zu error(s)\n", terrs.size());
+        } else {
+            fprintf(stderr, "Type check OK.\n");
         }
     }
 

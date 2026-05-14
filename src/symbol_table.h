@@ -27,9 +27,10 @@ const char* sym_kind_name(SymKind k);
 struct Symbol {
     std::string name;
     SymKind     kind;
-    Node*       node;   /* not owned */
-    int         line;   /* declaration site, for diagnostics */
+    Node*       node;
+    int         line;
     int         column;
+    Param*      param = nullptr;   /* only for parameter symbols */
 };
 
 /* A flat lexical scope: a map from name to Symbol.
