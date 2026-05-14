@@ -120,7 +120,11 @@ struct Resolver : Visitor {
     }
 
     void visit(MtypeDecl&) override { /* nothing to resolve */ }
-    void visit(LtlDecl& l) override { if (l.formula) l.formula->accept(*this); }
+    void visit(LtlDecl&) override {
+    /* LTL formulas reference global state and propositions; resolving
+       them properly needs the full model plus claim-specific scoping.
+       Deferred to Stage 5 (LTL translation). */
+    }
     void visit(DefineDecl&) override { /* no-op: defines were expanded by the lexer */ }
 
     void visit(ProctypeDecl& p) override {
@@ -130,18 +134,23 @@ struct Resolver : Visitor {
 
         /* Params */
         for (auto& param : p.params) {
-            auto* dup = local.try_insert({param.name, SymKind::Variable, nullptr, p.line, p.column});
+            Symbol sym;
+            sym.name   = param.name;
+            sym.kind   = SymKind::Variable;
+            sym.node   = nullptr;
+            sym.line   = p.line;
+            sym.column = p.column;
+            sym.param  = &param;          /* <-- back-pointer to the Param */
+            auto* dup = local.try_insert(sym);
             if (dup) err(p.line, p.column,
-                         "parameter '" + param.name + "' duplicated in proctype '"
-                         + p.name + "'");
-            /* Resolve named type on the parameter, if any. */
+                 "parameter '" + param.name + "' duplicated in proctype '"
+                 + p.name + "'");
+            /* type resolution as before */
             if (param.type && param.type->kind == BasicTypeKind::Named) {
                 auto* s = global.lookup(param.type->named);
-                if (!s) err(p.line, p.column,
-                            "unknown parameter type '" + param.type->named + "'");
+                if (!s) err(p.line, p.column, "unknown parameter type '" + param.type->named + "'");
                 else if (s->kind == SymKind::Typedef) param.type->resolved = s->node;
-                else err(p.line, p.column,
-                         "'" + param.type->named + "' is not a type");
+                else err(p.line, p.column, "'" + param.type->named + "' is not a type");
             }
         }
         collect_labels(p.body);
@@ -176,7 +185,11 @@ struct Resolver : Visitor {
             err(e.line, e.column, "unknown identifier '" + e.name + "'");
             return;
         }
-        e.resolved = s->node;
+        if (s->param) {
+            e.resolved_param = s->param;
+        } else {
+            e.resolved = s->node;
+        }
     }
     void visit(IndexExpr& e) override {
         if (e.base)  e.base->accept(*this);
