@@ -102,6 +102,16 @@ int g_parse_mode = 0;
 #define PARSE_EXPR        1
 #define PARSE_STMT_BLOCK  2
 
+/* Stamp a freshly-created AST node with the current source line.
+   yylineno is approximate at reduce time (the parser has read a bit
+   ahead), but it points close enough to the construct for diagnostics. */
+template <typename T>
+static T* at_line(T* node) {
+    node->line = yylineno;
+    node->column = 0;   /* column tracking not wired up; line is enough */
+    return node;
+}
+
 /* Expression-building helpers. */
 static p2p::Expr* make_bin(p2p::BinaryOp op, p2p::Expr* lhs, p2p::Expr* rhs) {
     auto* e = new p2p::BinaryExpr();
@@ -153,12 +163,12 @@ static p2p::Type* clone_type(const p2p::Type& src) {
 
 /* Wrap a (possibly composite) expression into an ExprStmt. */
 static p2p::Stmt* wrap_expr_stmt(p2p::Expr* e) {
-    auto* s = new p2p::ExprStmt();
+    auto* s = at_line(new p2p::ExprStmt());
     s->expr.reset(e);
     return s;
 }
 
-#line 162 "build/parser.cpp"
+#line 172 "build/parser.cpp"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -337,7 +347,7 @@ typedef enum yysymbol_kind_t yysymbol_kind_t;
 
 
 /* Unqualified %code blocks.  */
-#line 97 "src/parser.y"
+#line 107 "src/parser.y"
 
     /* Helpers and globals that reference types defined in %code requires.
        Must live in %code (not %{...%}) so they appear after the type
@@ -354,7 +364,7 @@ typedef enum yysymbol_kind_t yysymbol_kind_t;
     }
 
     static void push_decls(VarDeclList& list) {
-        if (!g_root) g_root = new p2p::Module();
+        if (!g_root) g_root = at_line(new p2p::Module());
         for (auto& d : list.items) {
             g_root->declarations.emplace_back(std::move(d));
         }
@@ -364,13 +374,13 @@ typedef enum yysymbol_kind_t yysymbol_kind_t;
        into a sequence of LocalVarDeclStmt nodes, appended to `out`. */
     static void wrap_local_decls(VarDeclList& list, StmtList& out) {
         for (auto& d : list.items) {
-            auto* s = new p2p::LocalVarDeclStmt();
+            auto* s = at_line(new p2p::LocalVarDeclStmt());
             s->decl = std::move(d);
             out.items.emplace_back(s);
         }
     }
 
-#line 374 "build/parser.cpp"
+#line 384 "build/parser.cpp"
 
 #ifdef short
 # undef short
@@ -758,28 +768,28 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   232,   232,   233,   234,   237,   239,   247,   248,   249,
-     250,   251,   252,   253,   254,   259,   270,   277,   295,   299,
-     300,   301,   302,   303,   304,   305,   306,   313,   323,   324,
-     325,   326,   327,   328,   329,   330,   337,   341,   347,   355,
-     361,   368,   375,   386,   392,   401,   414,   415,   424,   433,
-     439,   447,   453,   464,   471,   482,   489,   499,   509,   510,
-     517,   524,   534,   541,   548,   555,   556,   566,   567,   568,
-     569,   574,   579,   585,   586,   587,   588,   589,   590,   591,
-     592,   593,   594,   595,   596,   606,   616,   627,   643,   662,
-     675,   676,   680,   681,   691,   704,   721,   722,   727,   733,
-     734,   741,   743,   745,   754,   760,   764,   768,   776,   784,
-     789,   794,   800,   806,   813,   820,   826,   832,   839,   847,
-     853,   860,   867,   879,   891,   902,   925,   926,   927,   928,
-     929,   930,   931,   932,   933,   934,   935,   936,   937,   938,
-     954,   968,   976,   983,   988,   999,  1009,  1016,  1028,  1036,
-    1044,  1052,  1064,  1074,  1085,  1100,  1112,  1124,  1138,  1148,
-    1149,  1150,  1160,  1161,  1165,  1171,  1181,  1182,  1183,  1184,
-    1185,  1186,  1187,  1188,  1189,  1190,  1191,  1192,  1193,  1194,
-    1195,  1196,  1197,  1198,  1199,  1214,  1215,  1216,  1217,  1218,
-    1219,  1220,  1221,  1222,  1223,  1224,  1225,  1226,  1227,  1228,
-    1229,  1230,  1231,  1235,  1236,  1237,  1238,  1244,  1250,  1257,
-    1265,  1266,  1267,  1268,  1269,  1270,  1271,  1272,  1273
+       0,   242,   242,   243,   244,   247,   249,   257,   258,   259,
+     260,   261,   262,   263,   264,   269,   280,   287,   305,   309,
+     310,   311,   312,   313,   314,   315,   316,   323,   333,   334,
+     335,   336,   337,   338,   339,   340,   347,   351,   357,   365,
+     371,   378,   385,   396,   402,   411,   424,   425,   434,   443,
+     449,   457,   463,   474,   481,   492,   499,   509,   519,   520,
+     527,   534,   544,   551,   558,   565,   566,   576,   577,   578,
+     579,   584,   589,   595,   596,   597,   598,   599,   600,   601,
+     602,   603,   604,   605,   606,   616,   626,   637,   653,   672,
+     685,   686,   690,   691,   701,   714,   731,   732,   737,   743,
+     744,   751,   753,   755,   764,   770,   774,   778,   786,   794,
+     799,   804,   810,   816,   823,   830,   836,   842,   849,   857,
+     863,   870,   877,   889,   901,   912,   935,   936,   937,   938,
+     939,   940,   941,   942,   943,   944,   945,   946,   947,   948,
+     964,   978,   986,   993,   998,  1009,  1019,  1026,  1038,  1046,
+    1054,  1062,  1074,  1084,  1095,  1110,  1122,  1134,  1148,  1158,
+    1159,  1160,  1170,  1171,  1175,  1181,  1191,  1192,  1193,  1194,
+    1195,  1196,  1197,  1198,  1199,  1200,  1201,  1202,  1203,  1204,
+    1205,  1206,  1207,  1208,  1209,  1224,  1225,  1226,  1227,  1228,
+    1229,  1230,  1231,  1232,  1233,  1234,  1235,  1236,  1237,  1238,
+    1239,  1240,  1241,  1245,  1246,  1247,  1248,  1254,  1260,  1267,
+    1275,  1276,  1277,  1278,  1279,  1280,  1281,  1282,  1283
 };
 #endif
 
@@ -2122,93 +2132,93 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* start: START_PROGRAM program_body  */
-#line 232 "src/parser.y"
-                                       { if (!g_root) g_root = new p2p::Module(); }
-#line 2128 "build/parser.cpp"
+#line 242 "src/parser.y"
+                                       { if (!g_root) g_root = at_line(new p2p::Module()); }
+#line 2138 "build/parser.cpp"
     break;
 
   case 6: /* program_body: program_body top_decl  */
-#line 240 "src/parser.y"
+#line 250 "src/parser.y"
         {
-            if (!g_root) g_root = new p2p::Module();
+            if (!g_root) g_root = at_line(new p2p::Module());
             if ((yyvsp[0].node)) g_root->declarations.emplace_back((yyvsp[0].node));
         }
-#line 2137 "build/parser.cpp"
+#line 2147 "build/parser.cpp"
     break;
 
   case 7: /* top_decl: var_decl_stmt  */
-#line 247 "src/parser.y"
+#line 257 "src/parser.y"
                            { push_decls(*(yyvsp[0].vardecl_list)); delete (yyvsp[0].vardecl_list); (yyval.node) = nullptr; }
-#line 2143 "build/parser.cpp"
+#line 2153 "build/parser.cpp"
     break;
 
   case 8: /* top_decl: chan_decl_stmt  */
-#line 248 "src/parser.y"
+#line 258 "src/parser.y"
                            { (yyval.node) = (yyvsp[0].node); }
-#line 2149 "build/parser.cpp"
+#line 2159 "build/parser.cpp"
     break;
 
   case 9: /* top_decl: typedef_decl  */
-#line 249 "src/parser.y"
+#line 259 "src/parser.y"
                            { (yyval.node) = (yyvsp[0].node); }
-#line 2155 "build/parser.cpp"
+#line 2165 "build/parser.cpp"
     break;
 
   case 10: /* top_decl: mtype_decl  */
-#line 250 "src/parser.y"
+#line 260 "src/parser.y"
                            { (yyval.node) = (yyvsp[0].node); }
-#line 2161 "build/parser.cpp"
+#line 2171 "build/parser.cpp"
     break;
 
   case 11: /* top_decl: ltl_decl  */
-#line 251 "src/parser.y"
+#line 261 "src/parser.y"
                            { (yyval.node) = (yyvsp[0].node); }
-#line 2167 "build/parser.cpp"
+#line 2177 "build/parser.cpp"
     break;
 
   case 12: /* top_decl: proctype_decl  */
-#line 252 "src/parser.y"
+#line 262 "src/parser.y"
                            { (yyval.node) = (yyvsp[0].node); }
-#line 2173 "build/parser.cpp"
+#line 2183 "build/parser.cpp"
     break;
 
   case 13: /* top_decl: inline_decl  */
-#line 253 "src/parser.y"
+#line 263 "src/parser.y"
                            { (yyval.node) = (yyvsp[0].node); }
-#line 2179 "build/parser.cpp"
+#line 2189 "build/parser.cpp"
     break;
 
   case 14: /* top_decl: init_decl  */
-#line 254 "src/parser.y"
+#line 264 "src/parser.y"
                            { (yyval.node) = (yyvsp[0].node); }
-#line 2185 "build/parser.cpp"
+#line 2195 "build/parser.cpp"
     break;
 
   case 15: /* var_decl_stmt: basic_type declarator_list ';'  */
-#line 260 "src/parser.y"
+#line 270 "src/parser.y"
         {
             attach_type(*(yyvsp[-1].vardecl_list), *(yyvsp[-2].type));
             delete (yyvsp[-2].type);
             (yyval.vardecl_list) = (yyvsp[-1].vardecl_list);
         }
-#line 2195 "build/parser.cpp"
+#line 2205 "build/parser.cpp"
     break;
 
   case 16: /* chan_decl_stmt: chan_type IDENT ';'  */
-#line 271 "src/parser.y"
+#line 281 "src/parser.y"
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
             d->name = (yyvsp[-1].str_val); free((yyvsp[-1].str_val));
             d->type.reset((yyvsp[-2].type));
             (yyval.node) = d;
         }
-#line 2206 "build/parser.cpp"
+#line 2216 "build/parser.cpp"
     break;
 
   case 17: /* chan_decl_stmt: chan_type IDENT '=' '[' expr ']' K_OF '{' type_list '}' ';'  */
-#line 278 "src/parser.y"
+#line 288 "src/parser.y"
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
             d->name = (yyvsp[-9].str_val); free((yyvsp[-9].str_val));
             d->type.reset((yyvsp[-10].type));
             if (auto* lit = dynamic_cast<p2p::IntLiteral*>((yyvsp[-6].expr))) {
@@ -2221,564 +2231,564 @@ yyreduce:
             delete (yyvsp[-2].type_list);
             (yyval.node) = d;
         }
-#line 2225 "build/parser.cpp"
+#line 2235 "build/parser.cpp"
     break;
 
   case 18: /* chan_type: T_CHAN  */
-#line 295 "src/parser.y"
+#line 305 "src/parser.y"
                            { (yyval.type) = make_basic(p2p::BasicTypeKind::Chan); }
-#line 2231 "build/parser.cpp"
+#line 2241 "build/parser.cpp"
     break;
 
   case 19: /* basic_type: T_BYTE  */
-#line 299 "src/parser.y"
+#line 309 "src/parser.y"
                            { (yyval.type) = make_basic(p2p::BasicTypeKind::Byte); }
-#line 2237 "build/parser.cpp"
+#line 2247 "build/parser.cpp"
     break;
 
   case 20: /* basic_type: T_INT  */
-#line 300 "src/parser.y"
+#line 310 "src/parser.y"
                            { (yyval.type) = make_basic(p2p::BasicTypeKind::Int); }
-#line 2243 "build/parser.cpp"
+#line 2253 "build/parser.cpp"
     break;
 
   case 21: /* basic_type: T_BOOL  */
-#line 301 "src/parser.y"
+#line 311 "src/parser.y"
                            { (yyval.type) = make_basic(p2p::BasicTypeKind::Bool); }
-#line 2249 "build/parser.cpp"
+#line 2259 "build/parser.cpp"
     break;
 
   case 22: /* basic_type: T_BIT  */
-#line 302 "src/parser.y"
+#line 312 "src/parser.y"
                            { (yyval.type) = make_basic(p2p::BasicTypeKind::Bit); }
-#line 2255 "build/parser.cpp"
+#line 2265 "build/parser.cpp"
     break;
 
   case 23: /* basic_type: T_SHORT  */
-#line 303 "src/parser.y"
+#line 313 "src/parser.y"
                            { (yyval.type) = make_basic(p2p::BasicTypeKind::Short); }
-#line 2261 "build/parser.cpp"
+#line 2271 "build/parser.cpp"
     break;
 
   case 24: /* basic_type: T_UNSIGNED  */
-#line 304 "src/parser.y"
+#line 314 "src/parser.y"
                            { (yyval.type) = make_basic(p2p::BasicTypeKind::Unsigned); }
-#line 2267 "build/parser.cpp"
+#line 2277 "build/parser.cpp"
     break;
 
   case 25: /* basic_type: T_MTYPE  */
-#line 305 "src/parser.y"
+#line 315 "src/parser.y"
                            { (yyval.type) = make_basic(p2p::BasicTypeKind::Mtype); }
-#line 2273 "build/parser.cpp"
+#line 2283 "build/parser.cpp"
     break;
 
   case 26: /* basic_type: T_MTYPE ':' IDENT  */
-#line 307 "src/parser.y"
+#line 317 "src/parser.y"
         {
             auto* t = make_basic(p2p::BasicTypeKind::Mtype);
             t->mtype_set = (yyvsp[0].str_val);
             free((yyvsp[0].str_val));
             (yyval.type) = t;
         }
-#line 2284 "build/parser.cpp"
+#line 2294 "build/parser.cpp"
     break;
 
   case 27: /* basic_type: TYPENAME  */
-#line 313 "src/parser.y"
+#line 323 "src/parser.y"
                            { (yyval.type) = make_named((yyvsp[0].str_val)); free((yyvsp[0].str_val)); }
-#line 2290 "build/parser.cpp"
+#line 2300 "build/parser.cpp"
     break;
 
   case 28: /* local_basic_type: T_BYTE  */
-#line 323 "src/parser.y"
+#line 333 "src/parser.y"
                            { (yyval.type) = make_basic(p2p::BasicTypeKind::Byte); }
-#line 2296 "build/parser.cpp"
+#line 2306 "build/parser.cpp"
     break;
 
   case 29: /* local_basic_type: T_INT  */
-#line 324 "src/parser.y"
+#line 334 "src/parser.y"
                            { (yyval.type) = make_basic(p2p::BasicTypeKind::Int); }
-#line 2302 "build/parser.cpp"
+#line 2312 "build/parser.cpp"
     break;
 
   case 30: /* local_basic_type: T_BOOL  */
-#line 325 "src/parser.y"
+#line 335 "src/parser.y"
                            { (yyval.type) = make_basic(p2p::BasicTypeKind::Bool); }
-#line 2308 "build/parser.cpp"
+#line 2318 "build/parser.cpp"
     break;
 
   case 31: /* local_basic_type: T_BIT  */
-#line 326 "src/parser.y"
+#line 336 "src/parser.y"
                            { (yyval.type) = make_basic(p2p::BasicTypeKind::Bit); }
-#line 2314 "build/parser.cpp"
+#line 2324 "build/parser.cpp"
     break;
 
   case 32: /* local_basic_type: T_SHORT  */
-#line 327 "src/parser.y"
+#line 337 "src/parser.y"
                            { (yyval.type) = make_basic(p2p::BasicTypeKind::Short); }
-#line 2320 "build/parser.cpp"
+#line 2330 "build/parser.cpp"
     break;
 
   case 33: /* local_basic_type: T_UNSIGNED  */
-#line 328 "src/parser.y"
+#line 338 "src/parser.y"
                            { (yyval.type) = make_basic(p2p::BasicTypeKind::Unsigned); }
-#line 2326 "build/parser.cpp"
+#line 2336 "build/parser.cpp"
     break;
 
   case 34: /* local_basic_type: T_MTYPE  */
-#line 329 "src/parser.y"
+#line 339 "src/parser.y"
                            { (yyval.type) = make_basic(p2p::BasicTypeKind::Mtype); }
-#line 2332 "build/parser.cpp"
+#line 2342 "build/parser.cpp"
     break;
 
   case 35: /* local_basic_type: T_MTYPE ':' IDENT  */
-#line 331 "src/parser.y"
+#line 341 "src/parser.y"
         {
             auto* t = make_basic(p2p::BasicTypeKind::Mtype);
             t->mtype_set = (yyvsp[0].str_val);
             free((yyvsp[0].str_val));
             (yyval.type) = t;
         }
-#line 2343 "build/parser.cpp"
+#line 2353 "build/parser.cpp"
     break;
 
   case 36: /* local_basic_type: TYPENAME  */
-#line 337 "src/parser.y"
+#line 347 "src/parser.y"
                            { (yyval.type) = make_named((yyvsp[0].str_val)); free((yyvsp[0].str_val)); }
-#line 2349 "build/parser.cpp"
+#line 2359 "build/parser.cpp"
     break;
 
   case 37: /* declarator_list: declarator  */
-#line 342 "src/parser.y"
+#line 352 "src/parser.y"
         {
             auto* l = new VarDeclList();
             l->items.emplace_back((yyvsp[0].var_decl));
             (yyval.vardecl_list) = l;
         }
-#line 2359 "build/parser.cpp"
+#line 2369 "build/parser.cpp"
     break;
 
   case 38: /* declarator_list: declarator_list ',' declarator  */
-#line 348 "src/parser.y"
+#line 358 "src/parser.y"
         {
             (yyvsp[-2].vardecl_list)->items.emplace_back((yyvsp[0].var_decl));
             (yyval.vardecl_list) = (yyvsp[-2].vardecl_list);
         }
-#line 2368 "build/parser.cpp"
-    break;
-
-  case 39: /* declarator: IDENT  */
-#line 356 "src/parser.y"
-        {
-            auto* d = new p2p::VarDecl();
-            d->name = (yyvsp[0].str_val); free((yyvsp[0].str_val));
-            (yyval.var_decl) = d;
-        }
 #line 2378 "build/parser.cpp"
     break;
 
-  case 40: /* declarator: IDENT '=' expr  */
-#line 362 "src/parser.y"
+  case 39: /* declarator: IDENT  */
+#line 366 "src/parser.y"
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
+            d->name = (yyvsp[0].str_val); free((yyvsp[0].str_val));
+            (yyval.var_decl) = d;
+        }
+#line 2388 "build/parser.cpp"
+    break;
+
+  case 40: /* declarator: IDENT '=' expr  */
+#line 372 "src/parser.y"
+        {
+            auto* d = at_line(new p2p::VarDecl());
             d->name = (yyvsp[-2].str_val); free((yyvsp[-2].str_val));
             d->init.reset((yyvsp[0].expr));
             (yyval.var_decl) = d;
         }
-#line 2389 "build/parser.cpp"
+#line 2399 "build/parser.cpp"
     break;
 
   case 41: /* declarator: IDENT '[' expr ']'  */
-#line 369 "src/parser.y"
+#line 379 "src/parser.y"
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
             d->name = (yyvsp[-3].str_val); free((yyvsp[-3].str_val));
             d->array_size.reset((yyvsp[-1].expr));
             (yyval.var_decl) = d;
         }
-#line 2400 "build/parser.cpp"
+#line 2410 "build/parser.cpp"
     break;
 
   case 42: /* declarator: IDENT '[' expr ']' '=' expr  */
-#line 376 "src/parser.y"
+#line 386 "src/parser.y"
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
             d->name = (yyvsp[-5].str_val); free((yyvsp[-5].str_val));
             d->array_size.reset((yyvsp[-3].expr));
             d->init.reset((yyvsp[0].expr));
             (yyval.var_decl) = d;
         }
-#line 2412 "build/parser.cpp"
+#line 2422 "build/parser.cpp"
     break;
 
   case 43: /* type_list: basic_type  */
-#line 387 "src/parser.y"
+#line 397 "src/parser.y"
         {
             auto* tl = new TypeList();
             tl->items.emplace_back((yyvsp[0].type));
             (yyval.type_list) = tl;
         }
-#line 2422 "build/parser.cpp"
+#line 2432 "build/parser.cpp"
     break;
 
   case 44: /* type_list: type_list ',' basic_type  */
-#line 393 "src/parser.y"
+#line 403 "src/parser.y"
         {
             (yyvsp[-2].type_list)->items.emplace_back((yyvsp[0].type));
             (yyval.type_list) = (yyvsp[-2].type_list);
         }
-#line 2431 "build/parser.cpp"
+#line 2441 "build/parser.cpp"
     break;
 
   case 45: /* typedef_decl: K_TYPEDEF IDENT '{' field_decl_list '}' ';'  */
-#line 402 "src/parser.y"
+#line 412 "src/parser.y"
         {
-            auto* td = new p2p::TypedefDecl();
+            auto* td = at_line(new p2p::TypedefDecl());
             td->name = (yyvsp[-4].str_val);
-            p2p::typedef_register(td->name);   /* <-- добавь эту строку */
+            p2p::typedef_register(td->name);
             free((yyvsp[-4].str_val));
             td->fields = std::move((yyvsp[-2].vardecl_list)->items);
             delete (yyvsp[-2].vardecl_list);
             (yyval.node) = td;
         }
-#line 2445 "build/parser.cpp"
+#line 2455 "build/parser.cpp"
     break;
 
   case 46: /* field_decl_list: field_decl_stmt  */
-#line 414 "src/parser.y"
+#line 424 "src/parser.y"
                                                { (yyval.vardecl_list) = (yyvsp[0].vardecl_list); }
-#line 2451 "build/parser.cpp"
+#line 2461 "build/parser.cpp"
     break;
 
   case 47: /* field_decl_list: field_decl_list ';' field_decl_stmt  */
-#line 416 "src/parser.y"
+#line 426 "src/parser.y"
         {
             for (auto& f : (yyvsp[0].vardecl_list)->items) (yyvsp[-2].vardecl_list)->items.emplace_back(std::move(f));
             delete (yyvsp[0].vardecl_list);
             (yyval.vardecl_list) = (yyvsp[-2].vardecl_list);
         }
-#line 2461 "build/parser.cpp"
+#line 2471 "build/parser.cpp"
     break;
 
   case 48: /* field_decl_stmt: basic_type field_decl_one_or_more  */
-#line 425 "src/parser.y"
+#line 435 "src/parser.y"
         {
             attach_type(*(yyvsp[0].vardecl_list), *(yyvsp[-1].type));
             delete (yyvsp[-1].type);
             (yyval.vardecl_list) = (yyvsp[0].vardecl_list);
         }
-#line 2471 "build/parser.cpp"
+#line 2481 "build/parser.cpp"
     break;
 
   case 49: /* field_decl_one_or_more: field_one  */
-#line 434 "src/parser.y"
+#line 444 "src/parser.y"
         {
             auto* l = new VarDeclList();
             l->items.emplace_back((yyvsp[0].var_decl));
             (yyval.vardecl_list) = l;
         }
-#line 2481 "build/parser.cpp"
+#line 2491 "build/parser.cpp"
     break;
 
   case 50: /* field_decl_one_or_more: field_decl_one_or_more ',' field_one  */
-#line 440 "src/parser.y"
+#line 450 "src/parser.y"
         {
             (yyvsp[-2].vardecl_list)->items.emplace_back((yyvsp[0].var_decl));
             (yyval.vardecl_list) = (yyvsp[-2].vardecl_list);
         }
-#line 2490 "build/parser.cpp"
-    break;
-
-  case 51: /* field_one: IDENT  */
-#line 448 "src/parser.y"
-        {
-            auto* d = new p2p::VarDecl();
-            d->name = (yyvsp[0].str_val); free((yyvsp[0].str_val));
-            (yyval.var_decl) = d;
-        }
 #line 2500 "build/parser.cpp"
     break;
 
-  case 52: /* field_one: IDENT '[' expr ']'  */
-#line 454 "src/parser.y"
+  case 51: /* field_one: IDENT  */
+#line 458 "src/parser.y"
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
+            d->name = (yyvsp[0].str_val); free((yyvsp[0].str_val));
+            (yyval.var_decl) = d;
+        }
+#line 2510 "build/parser.cpp"
+    break;
+
+  case 52: /* field_one: IDENT '[' expr ']'  */
+#line 464 "src/parser.y"
+        {
+            auto* d = at_line(new p2p::VarDecl());
             d->name = (yyvsp[-3].str_val); free((yyvsp[-3].str_val));
             d->array_size.reset((yyvsp[-1].expr));
             (yyval.var_decl) = d;
         }
-#line 2511 "build/parser.cpp"
+#line 2521 "build/parser.cpp"
     break;
 
   case 53: /* mtype_decl: T_MTYPE '=' '{' ident_list '}' ';'  */
-#line 465 "src/parser.y"
+#line 475 "src/parser.y"
         {
-            auto* m = new p2p::MtypeDecl();
+            auto* m = at_line(new p2p::MtypeDecl());
             m->names = std::move((yyvsp[-2].ident_list)->items);
             delete (yyvsp[-2].ident_list);
             (yyval.node) = m;
         }
-#line 2522 "build/parser.cpp"
+#line 2532 "build/parser.cpp"
     break;
 
   case 54: /* mtype_decl: T_MTYPE ':' IDENT '=' '{' ident_list '}' ';'  */
-#line 472 "src/parser.y"
+#line 482 "src/parser.y"
         {
-            auto* m = new p2p::MtypeDecl();
+            auto* m = at_line(new p2p::MtypeDecl());
             m->set_name = (yyvsp[-5].str_val); free((yyvsp[-5].str_val));
             m->names = std::move((yyvsp[-2].ident_list)->items);
             delete (yyvsp[-2].ident_list);
             (yyval.node) = m;
         }
-#line 2534 "build/parser.cpp"
+#line 2544 "build/parser.cpp"
     break;
 
   case 55: /* ident_list: IDENT  */
-#line 483 "src/parser.y"
+#line 493 "src/parser.y"
         {
             auto* il = new IdentList();
             il->items.emplace_back((yyvsp[0].str_val));
             free((yyvsp[0].str_val));
             (yyval.ident_list) = il;
         }
-#line 2545 "build/parser.cpp"
+#line 2555 "build/parser.cpp"
     break;
 
   case 56: /* ident_list: ident_list ',' IDENT  */
-#line 490 "src/parser.y"
+#line 500 "src/parser.y"
         {
             (yyvsp[-2].ident_list)->items.emplace_back((yyvsp[0].str_val));
             free((yyvsp[0].str_val));
             (yyval.ident_list) = (yyvsp[-2].ident_list);
         }
-#line 2555 "build/parser.cpp"
+#line 2565 "build/parser.cpp"
     break;
 
   case 57: /* ltl_decl: K_LTL IDENT '{' ltl_formula '}'  */
-#line 500 "src/parser.y"
+#line 510 "src/parser.y"
         {
-            auto* l = new p2p::LtlDecl();
+            auto* l = at_line(new p2p::LtlDecl());
             l->name = (yyvsp[-3].str_val); free((yyvsp[-3].str_val));
             l->formula.reset((yyvsp[-1].ltl));
             (yyval.node) = l;
         }
-#line 2566 "build/parser.cpp"
+#line 2576 "build/parser.cpp"
     break;
 
   case 58: /* ltl_formula: ltl_unary  */
-#line 509 "src/parser.y"
+#line 519 "src/parser.y"
                                          { (yyval.ltl) = (yyvsp[0].ltl); }
-#line 2572 "build/parser.cpp"
+#line 2582 "build/parser.cpp"
     break;
 
   case 59: /* ltl_formula: ltl_formula OP_AND ltl_formula  */
-#line 511 "src/parser.y"
+#line 521 "src/parser.y"
         {
-            auto* f = new p2p::LtlFormula();
+            auto* f = at_line(new p2p::LtlFormula());
             f->op = p2p::LtlOp::And;
             f->lhs.reset((yyvsp[-2].ltl)); f->rhs.reset((yyvsp[0].ltl));
             (yyval.ltl) = f;
         }
-#line 2583 "build/parser.cpp"
+#line 2593 "build/parser.cpp"
     break;
 
   case 60: /* ltl_formula: ltl_formula OP_OR ltl_formula  */
-#line 518 "src/parser.y"
+#line 528 "src/parser.y"
         {
-            auto* f = new p2p::LtlFormula();
+            auto* f = at_line(new p2p::LtlFormula());
             f->op = p2p::LtlOp::Or;
             f->lhs.reset((yyvsp[-2].ltl)); f->rhs.reset((yyvsp[0].ltl));
             (yyval.ltl) = f;
         }
-#line 2594 "build/parser.cpp"
+#line 2604 "build/parser.cpp"
     break;
 
   case 61: /* ltl_formula: ltl_formula OP_ARROW ltl_formula  */
-#line 525 "src/parser.y"
+#line 535 "src/parser.y"
         {
-            auto* f = new p2p::LtlFormula();
+            auto* f = at_line(new p2p::LtlFormula());
             f->op = p2p::LtlOp::Implies;
             f->lhs.reset((yyvsp[-2].ltl)); f->rhs.reset((yyvsp[0].ltl));
             (yyval.ltl) = f;
         }
-#line 2605 "build/parser.cpp"
+#line 2615 "build/parser.cpp"
     break;
 
   case 62: /* ltl_unary: LTL_ALWAYS ltl_unary  */
-#line 535 "src/parser.y"
+#line 545 "src/parser.y"
         {
-            auto* f = new p2p::LtlFormula();
+            auto* f = at_line(new p2p::LtlFormula());
             f->op = p2p::LtlOp::Always;
             f->lhs.reset((yyvsp[0].ltl));
             (yyval.ltl) = f;
         }
-#line 2616 "build/parser.cpp"
+#line 2626 "build/parser.cpp"
     break;
 
   case 63: /* ltl_unary: LTL_EVENTUALLY ltl_unary  */
-#line 542 "src/parser.y"
+#line 552 "src/parser.y"
         {
-            auto* f = new p2p::LtlFormula();
+            auto* f = at_line(new p2p::LtlFormula());
             f->op = p2p::LtlOp::Eventually;
             f->lhs.reset((yyvsp[0].ltl));
             (yyval.ltl) = f;
         }
-#line 2627 "build/parser.cpp"
+#line 2637 "build/parser.cpp"
     break;
 
   case 64: /* ltl_unary: '!' ltl_unary  */
-#line 549 "src/parser.y"
+#line 559 "src/parser.y"
         {
-            auto* f = new p2p::LtlFormula();
+            auto* f = at_line(new p2p::LtlFormula());
             f->op = p2p::LtlOp::Not;
             f->lhs.reset((yyvsp[0].ltl));
             (yyval.ltl) = f;
         }
-#line 2638 "build/parser.cpp"
+#line 2648 "build/parser.cpp"
     break;
 
   case 65: /* ltl_unary: '(' ltl_formula ')'  */
-#line 555 "src/parser.y"
+#line 565 "src/parser.y"
                                          { (yyval.ltl) = (yyvsp[-1].ltl); }
-#line 2644 "build/parser.cpp"
+#line 2654 "build/parser.cpp"
     break;
 
   case 66: /* ltl_unary: ltl_atom  */
-#line 557 "src/parser.y"
+#line 567 "src/parser.y"
         {
-            auto* f = new p2p::LtlFormula();
+            auto* f = at_line(new p2p::LtlFormula());
             f->op = p2p::LtlOp::Atom;
             f->atom.reset((yyvsp[0].expr));
             (yyval.ltl) = f;
         }
-#line 2655 "build/parser.cpp"
+#line 2665 "build/parser.cpp"
     break;
 
   case 67: /* ltl_atom: INT_LITERAL  */
-#line 566 "src/parser.y"
-                                        { (yyval.expr) = new p2p::IntLiteral((long)(yyvsp[0].int_val)); }
-#line 2661 "build/parser.cpp"
+#line 576 "src/parser.y"
+                                        { (yyval.expr) = at_line(new p2p::IntLiteral((long)(yyvsp[0].int_val))); }
+#line 2671 "build/parser.cpp"
     break;
 
   case 68: /* ltl_atom: K_TRUE  */
-#line 567 "src/parser.y"
-                                        { (yyval.expr) = new p2p::BoolLiteral(true); }
-#line 2667 "build/parser.cpp"
+#line 577 "src/parser.y"
+                                        { (yyval.expr) = at_line(new p2p::BoolLiteral(true)); }
+#line 2677 "build/parser.cpp"
     break;
 
   case 69: /* ltl_atom: K_FALSE  */
-#line 568 "src/parser.y"
-                                        { (yyval.expr) = new p2p::BoolLiteral(false); }
-#line 2673 "build/parser.cpp"
-    break;
-
-  case 70: /* ltl_atom: IDENT  */
-#line 569 "src/parser.y"
-                                        {
-                                          auto* e = new p2p::IdentExpr((yyvsp[0].str_val));
-                                          free((yyvsp[0].str_val));
-                                          (yyval.expr) = e;
-                                        }
+#line 578 "src/parser.y"
+                                        { (yyval.expr) = at_line(new p2p::BoolLiteral(false)); }
 #line 2683 "build/parser.cpp"
     break;
 
-  case 71: /* ltl_atom: ltl_atom '[' ltl_atom ']'  */
-#line 574 "src/parser.y"
+  case 70: /* ltl_atom: IDENT  */
+#line 579 "src/parser.y"
                                         {
-                                          auto* e = new p2p::IndexExpr();
-                                          e->base.reset((yyvsp[-3].expr)); e->index.reset((yyvsp[-1].expr));
+                                          auto* e = at_line(new p2p::IdentExpr((yyvsp[0].str_val)));
+                                          free((yyvsp[0].str_val));
                                           (yyval.expr) = e;
                                         }
 #line 2693 "build/parser.cpp"
     break;
 
-  case 72: /* ltl_atom: ltl_atom '.' IDENT  */
-#line 579 "src/parser.y"
+  case 71: /* ltl_atom: ltl_atom '[' ltl_atom ']'  */
+#line 584 "src/parser.y"
                                         {
-                                          auto* e = new p2p::FieldExpr();
+                                          auto* e = at_line(new p2p::IndexExpr());
+                                          e->base.reset((yyvsp[-3].expr)); e->index.reset((yyvsp[-1].expr));
+                                          (yyval.expr) = e;
+                                        }
+#line 2703 "build/parser.cpp"
+    break;
+
+  case 72: /* ltl_atom: ltl_atom '.' IDENT  */
+#line 589 "src/parser.y"
+                                        {
+                                          auto* e = at_line(new p2p::FieldExpr());
                                           e->base.reset((yyvsp[-2].expr));
                                           e->field = (yyvsp[0].str_val); free((yyvsp[0].str_val));
                                           (yyval.expr) = e;
                                         }
-#line 2704 "build/parser.cpp"
+#line 2714 "build/parser.cpp"
     break;
 
   case 73: /* ltl_atom: ltl_atom '+' ltl_atom  */
-#line 585 "src/parser.y"
+#line 595 "src/parser.y"
                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Add, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2710 "build/parser.cpp"
+#line 2720 "build/parser.cpp"
     break;
 
   case 74: /* ltl_atom: ltl_atom '-' ltl_atom  */
-#line 586 "src/parser.y"
+#line 596 "src/parser.y"
                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Sub, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2716 "build/parser.cpp"
+#line 2726 "build/parser.cpp"
     break;
 
   case 75: /* ltl_atom: ltl_atom '*' ltl_atom  */
-#line 587 "src/parser.y"
+#line 597 "src/parser.y"
                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Mul, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2722 "build/parser.cpp"
+#line 2732 "build/parser.cpp"
     break;
 
   case 76: /* ltl_atom: ltl_atom '/' ltl_atom  */
-#line 588 "src/parser.y"
+#line 598 "src/parser.y"
                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Div, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2728 "build/parser.cpp"
+#line 2738 "build/parser.cpp"
     break;
 
   case 77: /* ltl_atom: ltl_atom '%' ltl_atom  */
-#line 589 "src/parser.y"
+#line 599 "src/parser.y"
                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Mod, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2734 "build/parser.cpp"
+#line 2744 "build/parser.cpp"
     break;
 
   case 78: /* ltl_atom: ltl_atom '<' ltl_atom  */
-#line 590 "src/parser.y"
+#line 600 "src/parser.y"
                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Lt,  (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2740 "build/parser.cpp"
+#line 2750 "build/parser.cpp"
     break;
 
   case 79: /* ltl_atom: ltl_atom '>' ltl_atom  */
-#line 591 "src/parser.y"
+#line 601 "src/parser.y"
                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Gt,  (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2746 "build/parser.cpp"
+#line 2756 "build/parser.cpp"
     break;
 
   case 80: /* ltl_atom: ltl_atom OP_LE ltl_atom  */
-#line 592 "src/parser.y"
+#line 602 "src/parser.y"
                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Le,  (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2752 "build/parser.cpp"
+#line 2762 "build/parser.cpp"
     break;
 
   case 81: /* ltl_atom: ltl_atom OP_GE ltl_atom  */
-#line 593 "src/parser.y"
+#line 603 "src/parser.y"
                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Ge,  (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2758 "build/parser.cpp"
+#line 2768 "build/parser.cpp"
     break;
 
   case 82: /* ltl_atom: ltl_atom OP_EQ ltl_atom  */
-#line 594 "src/parser.y"
+#line 604 "src/parser.y"
                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Eq,  (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2764 "build/parser.cpp"
+#line 2774 "build/parser.cpp"
     break;
 
   case 83: /* ltl_atom: ltl_atom OP_NEQ ltl_atom  */
-#line 595 "src/parser.y"
+#line 605 "src/parser.y"
                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Neq, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 2770 "build/parser.cpp"
+#line 2780 "build/parser.cpp"
     break;
 
   case 84: /* ltl_atom: '-' ltl_atom  */
-#line 596 "src/parser.y"
+#line 606 "src/parser.y"
                                         { (yyval.expr) = make_un(p2p::UnaryOp::Neg, (yyvsp[0].expr)); }
-#line 2776 "build/parser.cpp"
+#line 2786 "build/parser.cpp"
     break;
 
   case 85: /* proctype_decl: K_PROCTYPE IDENT '(' params_opt ')' stmt_block  */
-#line 607 "src/parser.y"
+#line 617 "src/parser.y"
         {
-            auto* p = new p2p::ProctypeDecl();
+            auto* p = at_line(new p2p::ProctypeDecl());
             p->name = (yyvsp[-4].str_val); free((yyvsp[-4].str_val));
             p->params = std::move((yyvsp[-2].param_list)->items);
             delete (yyvsp[-2].param_list);
@@ -2786,13 +2796,13 @@ yyreduce:
             delete (yyvsp[0].stmt_list);
             (yyval.node) = p;
         }
-#line 2790 "build/parser.cpp"
+#line 2800 "build/parser.cpp"
     break;
 
   case 86: /* proctype_decl: K_ACTIVE K_PROCTYPE IDENT '(' params_opt ')' stmt_block  */
-#line 617 "src/parser.y"
+#line 627 "src/parser.y"
         {
-            auto* p = new p2p::ProctypeDecl();
+            auto* p = at_line(new p2p::ProctypeDecl());
             p->name = (yyvsp[-4].str_val); free((yyvsp[-4].str_val));
             p->instance_count = 1;
             p->params = std::move((yyvsp[-2].param_list)->items);
@@ -2801,13 +2811,13 @@ yyreduce:
             delete (yyvsp[0].stmt_list);
             (yyval.node) = p;
         }
-#line 2805 "build/parser.cpp"
+#line 2815 "build/parser.cpp"
     break;
 
   case 87: /* proctype_decl: K_ACTIVE '[' INT_LITERAL ']' K_PROCTYPE IDENT '(' params_opt ')' stmt_block  */
-#line 628 "src/parser.y"
+#line 638 "src/parser.y"
         {
-            auto* p = new p2p::ProctypeDecl();
+            auto* p = at_line(new p2p::ProctypeDecl());
             p->name = (yyvsp[-4].str_val); free((yyvsp[-4].str_val));
             p->instance_count = (yyvsp[-7].int_val) > 0 ? (yyvsp[-7].int_val) : 1;
             p->params = std::move((yyvsp[-2].param_list)->items);
@@ -2816,13 +2826,13 @@ yyreduce:
             delete (yyvsp[0].stmt_list);
             (yyval.node) = p;
         }
-#line 2820 "build/parser.cpp"
+#line 2830 "build/parser.cpp"
     break;
 
   case 88: /* inline_decl: K_INLINE IDENT '(' ident_list_opt ')' stmt_block  */
-#line 644 "src/parser.y"
+#line 654 "src/parser.y"
         {
-            auto* d = new p2p::InlineDecl();
+            auto* d = at_line(new p2p::InlineDecl());
             d->name = (yyvsp[-4].str_val); free((yyvsp[-4].str_val));
             /* convert IdentList into ParamList with untyped Params */
             for (auto& n : (yyvsp[-2].ident_list)->items) {
@@ -2835,50 +2845,50 @@ yyreduce:
             delete (yyvsp[0].stmt_list);
             (yyval.node) = d;
         }
-#line 2839 "build/parser.cpp"
+#line 2849 "build/parser.cpp"
     break;
 
   case 89: /* init_decl: K_INIT stmt_block  */
-#line 663 "src/parser.y"
+#line 673 "src/parser.y"
         {
-            auto* d = new p2p::InitDecl();
+            auto* d = at_line(new p2p::InitDecl());
             d->body = std::move((yyvsp[0].stmt_list)->items);
             delete (yyvsp[0].stmt_list);
             (yyval.node) = d;
         }
-#line 2850 "build/parser.cpp"
+#line 2860 "build/parser.cpp"
     break;
 
   case 90: /* params_opt: %empty  */
-#line 675 "src/parser.y"
+#line 685 "src/parser.y"
                                { (yyval.param_list) = new ParamList(); }
-#line 2856 "build/parser.cpp"
+#line 2866 "build/parser.cpp"
     break;
 
   case 91: /* params_opt: param_list  */
-#line 676 "src/parser.y"
+#line 686 "src/parser.y"
                                { (yyval.param_list) = (yyvsp[0].param_list); }
-#line 2862 "build/parser.cpp"
+#line 2872 "build/parser.cpp"
     break;
 
   case 92: /* param_list: param_group  */
-#line 680 "src/parser.y"
+#line 690 "src/parser.y"
                                { (yyval.param_list) = (yyvsp[0].param_list); }
-#line 2868 "build/parser.cpp"
+#line 2878 "build/parser.cpp"
     break;
 
   case 93: /* param_list: param_list ';' param_group  */
-#line 682 "src/parser.y"
+#line 692 "src/parser.y"
         {
             for (auto& p : (yyvsp[0].param_list)->items) (yyvsp[-2].param_list)->items.push_back(std::move(p));
             delete (yyvsp[0].param_list);
             (yyval.param_list) = (yyvsp[-2].param_list);
         }
-#line 2878 "build/parser.cpp"
+#line 2888 "build/parser.cpp"
     break;
 
   case 94: /* param_group: basic_type ident_list  */
-#line 692 "src/parser.y"
+#line 702 "src/parser.y"
         {
             auto* pl = new ParamList();
             for (auto& n : (yyvsp[0].ident_list)->items) {
@@ -2891,11 +2901,11 @@ yyreduce:
             delete (yyvsp[-1].type);
             (yyval.param_list) = pl;
         }
-#line 2895 "build/parser.cpp"
+#line 2905 "build/parser.cpp"
     break;
 
   case 95: /* param_group: chan_type ident_list  */
-#line 705 "src/parser.y"
+#line 715 "src/parser.y"
         {
             auto* pl = new ParamList();
             for (auto& n : (yyvsp[0].ident_list)->items) {
@@ -2908,85 +2918,85 @@ yyreduce:
             delete (yyvsp[-1].type);
             (yyval.param_list) = pl;
         }
-#line 2912 "build/parser.cpp"
+#line 2922 "build/parser.cpp"
     break;
 
   case 96: /* ident_list_opt: %empty  */
-#line 721 "src/parser.y"
+#line 731 "src/parser.y"
                                { (yyval.ident_list) = new IdentList(); }
-#line 2918 "build/parser.cpp"
+#line 2928 "build/parser.cpp"
     break;
 
   case 97: /* ident_list_opt: ident_list  */
-#line 722 "src/parser.y"
+#line 732 "src/parser.y"
                                { (yyval.ident_list) = (yyvsp[0].ident_list); }
-#line 2924 "build/parser.cpp"
+#line 2934 "build/parser.cpp"
     break;
 
   case 98: /* expr_body: expr ';'  */
-#line 727 "src/parser.y"
+#line 737 "src/parser.y"
                 { g_expr_result = (yyvsp[-1].expr); }
-#line 2930 "build/parser.cpp"
+#line 2940 "build/parser.cpp"
     break;
 
   case 99: /* stmt_body: stmt_block  */
-#line 733 "src/parser.y"
+#line 743 "src/parser.y"
                                         { g_stmt_result = (yyvsp[0].stmt_list); }
-#line 2936 "build/parser.cpp"
+#line 2946 "build/parser.cpp"
     break;
 
   case 100: /* stmt_body: stmt_seq  */
-#line 734 "src/parser.y"
+#line 744 "src/parser.y"
                                         { g_stmt_result = (yyvsp[0].stmt_list); }
-#line 2942 "build/parser.cpp"
+#line 2952 "build/parser.cpp"
     break;
 
   case 101: /* stmt_block: '{' '}'  */
-#line 742 "src/parser.y"
+#line 752 "src/parser.y"
         { (yyval.stmt_list) = new StmtList(); }
-#line 2948 "build/parser.cpp"
+#line 2958 "build/parser.cpp"
     break;
 
   case 102: /* stmt_block: '{' stmt_seq '}'  */
-#line 744 "src/parser.y"
+#line 754 "src/parser.y"
         { (yyval.stmt_list) = (yyvsp[-1].stmt_list); }
-#line 2954 "build/parser.cpp"
+#line 2964 "build/parser.cpp"
     break;
 
   case 103: /* stmt_block: '{' stmt_seq ';' '}'  */
-#line 746 "src/parser.y"
+#line 756 "src/parser.y"
         { (yyval.stmt_list) = (yyvsp[-2].stmt_list); }
-#line 2960 "build/parser.cpp"
-    break;
-
-  case 104: /* stmt_seq: stmt  */
-#line 755 "src/parser.y"
-        {
-            auto* l = new StmtList();
-            l->items.emplace_back((yyvsp[0].stmt));
-            (yyval.stmt_list) = l;
-        }
 #line 2970 "build/parser.cpp"
     break;
 
+  case 104: /* stmt_seq: stmt  */
+#line 765 "src/parser.y"
+        {
+            auto* l = new StmtList();
+            l->items.emplace_back((yyvsp[0].stmt));
+            (yyval.stmt_list) = l;
+        }
+#line 2980 "build/parser.cpp"
+    break;
+
   case 105: /* stmt_seq: local_var_decl_stmt  */
-#line 761 "src/parser.y"
+#line 771 "src/parser.y"
         {
             (yyval.stmt_list) = (yyvsp[0].stmt_list);
         }
-#line 2978 "build/parser.cpp"
+#line 2988 "build/parser.cpp"
     break;
 
   case 106: /* stmt_seq: local_chan_decl_stmt  */
-#line 765 "src/parser.y"
+#line 775 "src/parser.y"
         {
             (yyval.stmt_list) = (yyvsp[0].stmt_list);
         }
-#line 2986 "build/parser.cpp"
+#line 2996 "build/parser.cpp"
     break;
 
   case 107: /* stmt_seq: local_var_decl_stmt stmt  */
-#line 769 "src/parser.y"
+#line 779 "src/parser.y"
         {
             auto* l = new StmtList();
             for (auto& s : (yyvsp[-1].stmt_list)->items) l->items.emplace_back(std::move(s));
@@ -2994,11 +3004,11 @@ yyreduce:
             l->items.emplace_back((yyvsp[0].stmt));
             (yyval.stmt_list) = l;
         }
-#line 2998 "build/parser.cpp"
+#line 3008 "build/parser.cpp"
     break;
 
   case 108: /* stmt_seq: local_chan_decl_stmt stmt  */
-#line 777 "src/parser.y"
+#line 787 "src/parser.y"
         {
             auto* l = new StmtList();
             for (auto& s : (yyvsp[-1].stmt_list)->items) l->items.emplace_back(std::move(s));
@@ -3006,39 +3016,29 @@ yyreduce:
             l->items.emplace_back((yyvsp[0].stmt));
             (yyval.stmt_list) = l;
         }
-#line 3010 "build/parser.cpp"
+#line 3020 "build/parser.cpp"
     break;
 
   case 109: /* stmt_seq: stmt_seq ';' stmt  */
-#line 785 "src/parser.y"
+#line 795 "src/parser.y"
         {
             (yyvsp[-2].stmt_list)->items.emplace_back((yyvsp[0].stmt));
             (yyval.stmt_list) = (yyvsp[-2].stmt_list);
         }
-#line 3019 "build/parser.cpp"
+#line 3029 "build/parser.cpp"
     break;
 
   case 110: /* stmt_seq: stmt_seq OP_ARROW stmt  */
-#line 790 "src/parser.y"
+#line 800 "src/parser.y"
         {
             (yyvsp[-2].stmt_list)->items.emplace_back((yyvsp[0].stmt));
-            (yyval.stmt_list) = (yyvsp[-2].stmt_list);
-        }
-#line 3028 "build/parser.cpp"
-    break;
-
-  case 111: /* stmt_seq: stmt_seq ';' local_var_decl_stmt  */
-#line 795 "src/parser.y"
-        {
-            for (auto& s : (yyvsp[0].stmt_list)->items) (yyvsp[-2].stmt_list)->items.emplace_back(std::move(s));
-            delete (yyvsp[0].stmt_list);
             (yyval.stmt_list) = (yyvsp[-2].stmt_list);
         }
 #line 3038 "build/parser.cpp"
     break;
 
-  case 112: /* stmt_seq: stmt_seq ';' local_chan_decl_stmt  */
-#line 801 "src/parser.y"
+  case 111: /* stmt_seq: stmt_seq ';' local_var_decl_stmt  */
+#line 805 "src/parser.y"
         {
             for (auto& s : (yyvsp[0].stmt_list)->items) (yyvsp[-2].stmt_list)->items.emplace_back(std::move(s));
             delete (yyvsp[0].stmt_list);
@@ -3047,40 +3047,40 @@ yyreduce:
 #line 3048 "build/parser.cpp"
     break;
 
-  case 113: /* stmt_seq: stmt_seq ';' local_var_decl_stmt stmt  */
-#line 807 "src/parser.y"
-        {
-            for (auto& s : (yyvsp[-1].stmt_list)->items) (yyvsp[-3].stmt_list)->items.emplace_back(std::move(s));
-            delete (yyvsp[-1].stmt_list);
-            (yyvsp[-3].stmt_list)->items.emplace_back((yyvsp[0].stmt));
-            (yyval.stmt_list) = (yyvsp[-3].stmt_list);
-        }
-#line 3059 "build/parser.cpp"
-    break;
-
-  case 114: /* stmt_seq: stmt_seq ';' local_chan_decl_stmt stmt  */
-#line 814 "src/parser.y"
-        {
-            for (auto& s : (yyvsp[-1].stmt_list)->items) (yyvsp[-3].stmt_list)->items.emplace_back(std::move(s));
-            delete (yyvsp[-1].stmt_list);
-            (yyvsp[-3].stmt_list)->items.emplace_back((yyvsp[0].stmt));
-            (yyval.stmt_list) = (yyvsp[-3].stmt_list);
-        }
-#line 3070 "build/parser.cpp"
-    break;
-
-  case 115: /* stmt_seq: stmt_seq OP_ARROW local_var_decl_stmt  */
-#line 821 "src/parser.y"
+  case 112: /* stmt_seq: stmt_seq ';' local_chan_decl_stmt  */
+#line 811 "src/parser.y"
         {
             for (auto& s : (yyvsp[0].stmt_list)->items) (yyvsp[-2].stmt_list)->items.emplace_back(std::move(s));
             delete (yyvsp[0].stmt_list);
             (yyval.stmt_list) = (yyvsp[-2].stmt_list);
         }
+#line 3058 "build/parser.cpp"
+    break;
+
+  case 113: /* stmt_seq: stmt_seq ';' local_var_decl_stmt stmt  */
+#line 817 "src/parser.y"
+        {
+            for (auto& s : (yyvsp[-1].stmt_list)->items) (yyvsp[-3].stmt_list)->items.emplace_back(std::move(s));
+            delete (yyvsp[-1].stmt_list);
+            (yyvsp[-3].stmt_list)->items.emplace_back((yyvsp[0].stmt));
+            (yyval.stmt_list) = (yyvsp[-3].stmt_list);
+        }
+#line 3069 "build/parser.cpp"
+    break;
+
+  case 114: /* stmt_seq: stmt_seq ';' local_chan_decl_stmt stmt  */
+#line 824 "src/parser.y"
+        {
+            for (auto& s : (yyvsp[-1].stmt_list)->items) (yyvsp[-3].stmt_list)->items.emplace_back(std::move(s));
+            delete (yyvsp[-1].stmt_list);
+            (yyvsp[-3].stmt_list)->items.emplace_back((yyvsp[0].stmt));
+            (yyval.stmt_list) = (yyvsp[-3].stmt_list);
+        }
 #line 3080 "build/parser.cpp"
     break;
 
-  case 116: /* stmt_seq: stmt_seq OP_ARROW local_chan_decl_stmt  */
-#line 827 "src/parser.y"
+  case 115: /* stmt_seq: stmt_seq OP_ARROW local_var_decl_stmt  */
+#line 831 "src/parser.y"
         {
             for (auto& s : (yyvsp[0].stmt_list)->items) (yyvsp[-2].stmt_list)->items.emplace_back(std::move(s));
             delete (yyvsp[0].stmt_list);
@@ -3089,40 +3089,40 @@ yyreduce:
 #line 3090 "build/parser.cpp"
     break;
 
+  case 116: /* stmt_seq: stmt_seq OP_ARROW local_chan_decl_stmt  */
+#line 837 "src/parser.y"
+        {
+            for (auto& s : (yyvsp[0].stmt_list)->items) (yyvsp[-2].stmt_list)->items.emplace_back(std::move(s));
+            delete (yyvsp[0].stmt_list);
+            (yyval.stmt_list) = (yyvsp[-2].stmt_list);
+        }
+#line 3100 "build/parser.cpp"
+    break;
+
   case 117: /* stmt_seq: stmt_seq OP_ARROW local_var_decl_stmt stmt  */
-#line 833 "src/parser.y"
+#line 843 "src/parser.y"
         {
             for (auto& s : (yyvsp[-1].stmt_list)->items) (yyvsp[-3].stmt_list)->items.emplace_back(std::move(s));
             delete (yyvsp[-1].stmt_list);
             (yyvsp[-3].stmt_list)->items.emplace_back((yyvsp[0].stmt));
             (yyval.stmt_list) = (yyvsp[-3].stmt_list);
         }
-#line 3101 "build/parser.cpp"
+#line 3111 "build/parser.cpp"
     break;
 
   case 118: /* stmt_seq: stmt_seq OP_ARROW local_chan_decl_stmt stmt  */
-#line 840 "src/parser.y"
+#line 850 "src/parser.y"
         {
             for (auto& s : (yyvsp[-1].stmt_list)->items) (yyvsp[-3].stmt_list)->items.emplace_back(std::move(s));
             delete (yyvsp[-1].stmt_list);
             (yyvsp[-3].stmt_list)->items.emplace_back((yyvsp[0].stmt));
             (yyval.stmt_list) = (yyvsp[-3].stmt_list);
-        }
-#line 3112 "build/parser.cpp"
-    break;
-
-  case 119: /* stmt_seq: stmt_seq local_var_decl_stmt  */
-#line 848 "src/parser.y"
-        {
-            for (auto& s : (yyvsp[0].stmt_list)->items) (yyvsp[-1].stmt_list)->items.emplace_back(std::move(s));
-            delete (yyvsp[0].stmt_list);
-            (yyval.stmt_list) = (yyvsp[-1].stmt_list);
         }
 #line 3122 "build/parser.cpp"
     break;
 
-  case 120: /* stmt_seq: stmt_seq local_chan_decl_stmt  */
-#line 854 "src/parser.y"
+  case 119: /* stmt_seq: stmt_seq local_var_decl_stmt  */
+#line 858 "src/parser.y"
         {
             for (auto& s : (yyvsp[0].stmt_list)->items) (yyvsp[-1].stmt_list)->items.emplace_back(std::move(s));
             delete (yyvsp[0].stmt_list);
@@ -3131,30 +3131,40 @@ yyreduce:
 #line 3132 "build/parser.cpp"
     break;
 
+  case 120: /* stmt_seq: stmt_seq local_chan_decl_stmt  */
+#line 864 "src/parser.y"
+        {
+            for (auto& s : (yyvsp[0].stmt_list)->items) (yyvsp[-1].stmt_list)->items.emplace_back(std::move(s));
+            delete (yyvsp[0].stmt_list);
+            (yyval.stmt_list) = (yyvsp[-1].stmt_list);
+        }
+#line 3142 "build/parser.cpp"
+    break;
+
   case 121: /* stmt_seq: stmt_seq local_var_decl_stmt stmt  */
-#line 861 "src/parser.y"
+#line 871 "src/parser.y"
         {
             for (auto& s : (yyvsp[-1].stmt_list)->items) (yyvsp[-2].stmt_list)->items.emplace_back(std::move(s));
             delete (yyvsp[-1].stmt_list);
             (yyvsp[-2].stmt_list)->items.emplace_back((yyvsp[0].stmt));
             (yyval.stmt_list) = (yyvsp[-2].stmt_list);
         }
-#line 3143 "build/parser.cpp"
+#line 3153 "build/parser.cpp"
     break;
 
   case 122: /* stmt_seq: stmt_seq local_chan_decl_stmt stmt  */
-#line 868 "src/parser.y"
+#line 878 "src/parser.y"
         {
             for (auto& s : (yyvsp[-1].stmt_list)->items) (yyvsp[-2].stmt_list)->items.emplace_back(std::move(s));
             delete (yyvsp[-1].stmt_list);
             (yyvsp[-2].stmt_list)->items.emplace_back((yyvsp[0].stmt));
             (yyval.stmt_list) = (yyvsp[-2].stmt_list);
         }
-#line 3154 "build/parser.cpp"
+#line 3164 "build/parser.cpp"
     break;
 
   case 123: /* local_var_decl_stmt: local_basic_type declarator_list ';'  */
-#line 880 "src/parser.y"
+#line 890 "src/parser.y"
         {
             attach_type(*(yyvsp[-1].vardecl_list), *(yyvsp[-2].type));
             delete (yyvsp[-2].type);
@@ -3163,28 +3173,28 @@ yyreduce:
             delete (yyvsp[-1].vardecl_list);
             (yyval.stmt_list) = out;
         }
-#line 3167 "build/parser.cpp"
+#line 3177 "build/parser.cpp"
     break;
 
   case 124: /* local_chan_decl_stmt: chan_type IDENT ';'  */
-#line 892 "src/parser.y"
+#line 902 "src/parser.y"
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
             d->name = (yyvsp[-1].str_val); free((yyvsp[-1].str_val));
             d->type.reset((yyvsp[-2].type));
-            auto* s = new p2p::LocalVarDeclStmt();
+            auto* s = at_line(new p2p::LocalVarDeclStmt());
             s->decl.reset(d);
             auto* out = new StmtList();
             out->items.emplace_back(s);
             (yyval.stmt_list) = out;
         }
-#line 3182 "build/parser.cpp"
+#line 3192 "build/parser.cpp"
     break;
 
   case 125: /* local_chan_decl_stmt: chan_type IDENT '=' '[' expr ']' K_OF '{' type_list '}' ';'  */
-#line 903 "src/parser.y"
+#line 913 "src/parser.y"
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
             d->name = (yyvsp[-9].str_val); free((yyvsp[-9].str_val));
             d->type.reset((yyvsp[-10].type));
             if (auto* lit = dynamic_cast<p2p::IntLiteral*>((yyvsp[-6].expr))) {
@@ -3195,106 +3205,106 @@ yyreduce:
             delete (yyvsp[-6].expr);
             d->type->chan_msg_types = std::move((yyvsp[-2].type_list)->items);
             delete (yyvsp[-2].type_list);
-            auto* s = new p2p::LocalVarDeclStmt();
+            auto* s = at_line(new p2p::LocalVarDeclStmt());
             s->decl.reset(d);
             auto* out = new StmtList();
             out->items.emplace_back(s);
             (yyval.stmt_list) = out;
         }
-#line 3205 "build/parser.cpp"
+#line 3215 "build/parser.cpp"
     break;
 
   case 126: /* stmt: simple_stmt  */
-#line 925 "src/parser.y"
+#line 935 "src/parser.y"
                                         { (yyval.stmt) = (yyvsp[0].stmt); }
-#line 3211 "build/parser.cpp"
+#line 3221 "build/parser.cpp"
     break;
 
   case 127: /* stmt: if_stmt  */
-#line 926 "src/parser.y"
+#line 936 "src/parser.y"
                                         { (yyval.stmt) = (yyvsp[0].stmt); }
-#line 3217 "build/parser.cpp"
+#line 3227 "build/parser.cpp"
     break;
 
   case 128: /* stmt: do_stmt  */
-#line 927 "src/parser.y"
+#line 937 "src/parser.y"
                                         { (yyval.stmt) = (yyvsp[0].stmt); }
-#line 3223 "build/parser.cpp"
+#line 3233 "build/parser.cpp"
     break;
 
   case 129: /* stmt: atomic_stmt  */
-#line 928 "src/parser.y"
+#line 938 "src/parser.y"
                                         { (yyval.stmt) = (yyvsp[0].stmt); }
-#line 3229 "build/parser.cpp"
+#line 3239 "build/parser.cpp"
     break;
 
   case 130: /* stmt: dstep_stmt  */
-#line 929 "src/parser.y"
+#line 939 "src/parser.y"
                                         { (yyval.stmt) = (yyvsp[0].stmt); }
-#line 3235 "build/parser.cpp"
+#line 3245 "build/parser.cpp"
     break;
 
   case 131: /* stmt: for_stmt  */
-#line 930 "src/parser.y"
+#line 940 "src/parser.y"
                                         { (yyval.stmt) = (yyvsp[0].stmt); }
-#line 3241 "build/parser.cpp"
+#line 3251 "build/parser.cpp"
     break;
 
   case 132: /* stmt: select_stmt  */
-#line 931 "src/parser.y"
+#line 941 "src/parser.y"
                                         { (yyval.stmt) = (yyvsp[0].stmt); }
-#line 3247 "build/parser.cpp"
+#line 3257 "build/parser.cpp"
     break;
 
   case 133: /* stmt: send_stmt  */
-#line 932 "src/parser.y"
+#line 942 "src/parser.y"
                                         { (yyval.stmt) = (yyvsp[0].stmt); }
-#line 3253 "build/parser.cpp"
+#line 3263 "build/parser.cpp"
     break;
 
   case 134: /* stmt: recv_stmt  */
-#line 933 "src/parser.y"
+#line 943 "src/parser.y"
                                         { (yyval.stmt) = (yyvsp[0].stmt); }
-#line 3259 "build/parser.cpp"
+#line 3269 "build/parser.cpp"
     break;
 
   case 135: /* stmt: run_stmt  */
-#line 934 "src/parser.y"
+#line 944 "src/parser.y"
                                         { (yyval.stmt) = (yyvsp[0].stmt); }
-#line 3265 "build/parser.cpp"
+#line 3275 "build/parser.cpp"
     break;
 
   case 136: /* stmt: break_stmt  */
-#line 935 "src/parser.y"
+#line 945 "src/parser.y"
                                         { (yyval.stmt) = (yyvsp[0].stmt); }
-#line 3271 "build/parser.cpp"
+#line 3281 "build/parser.cpp"
     break;
 
   case 137: /* stmt: skip_stmt  */
-#line 936 "src/parser.y"
+#line 946 "src/parser.y"
                                         { (yyval.stmt) = (yyvsp[0].stmt); }
-#line 3277 "build/parser.cpp"
+#line 3287 "build/parser.cpp"
     break;
 
   case 138: /* stmt: goto_stmt  */
-#line 937 "src/parser.y"
+#line 947 "src/parser.y"
                                         { (yyval.stmt) = (yyvsp[0].stmt); }
-#line 3283 "build/parser.cpp"
+#line 3293 "build/parser.cpp"
     break;
 
   case 139: /* stmt: IDENT ':' stmt  */
-#line 939 "src/parser.y"
+#line 949 "src/parser.y"
         {
-            auto* l = new p2p::LabeledStmt();
+            auto* l = at_line(new p2p::LabeledStmt());
             l->label = (yyvsp[-2].str_val); free((yyvsp[-2].str_val));
             l->stmt.reset((yyvsp[0].stmt));
             (yyval.stmt) = l;
         }
-#line 3294 "build/parser.cpp"
+#line 3304 "build/parser.cpp"
     break;
 
   case 140: /* assign_or_expr_stmt: expr '=' expr  */
-#line 955 "src/parser.y"
+#line 965 "src/parser.y"
         {
             if (!dynamic_cast<p2p::IdentExpr*>((yyvsp[-2].expr))
              && !dynamic_cast<p2p::IndexExpr*>((yyvsp[-2].expr))
@@ -3303,85 +3313,85 @@ yyreduce:
                 delete (yyvsp[-2].expr); delete (yyvsp[0].expr);
                 YYERROR;
             }
-            auto* a = new p2p::AssignStmt();
+            auto* a = at_line(new p2p::AssignStmt());
             a->lhs.reset((yyvsp[-2].expr));
             a->rhs.reset((yyvsp[0].expr));
             (yyval.stmt) = a;
         }
-#line 3312 "build/parser.cpp"
+#line 3322 "build/parser.cpp"
     break;
 
   case 141: /* assign_or_expr_stmt: IDENT '(' expr_args ')'  */
-#line 969 "src/parser.y"
+#line 979 "src/parser.y"
         {
-            auto* c = new p2p::InlineCallStmt();
+            auto* c = at_line(new p2p::InlineCallStmt());
             c->name = (yyvsp[-3].str_val); free((yyvsp[-3].str_val));
             c->args = std::move((yyvsp[-1].expr_list)->items);
             delete (yyvsp[-1].expr_list);
             (yyval.stmt) = c;
         }
-#line 3324 "build/parser.cpp"
+#line 3334 "build/parser.cpp"
     break;
 
   case 142: /* assign_or_expr_stmt: expr  */
-#line 977 "src/parser.y"
+#line 987 "src/parser.y"
         {
             (yyval.stmt) = wrap_expr_stmt((yyvsp[0].expr));
         }
-#line 3332 "build/parser.cpp"
+#line 3342 "build/parser.cpp"
     break;
 
   case 143: /* simple_stmt: assign_or_expr_stmt  */
-#line 983 "src/parser.y"
+#line 993 "src/parser.y"
                                         { (yyval.stmt) = (yyvsp[0].stmt); }
-#line 3338 "build/parser.cpp"
+#line 3348 "build/parser.cpp"
     break;
 
   case 144: /* if_stmt: K_IF branches K_FI  */
-#line 989 "src/parser.y"
+#line 999 "src/parser.y"
         {
-            auto* s = new p2p::IfStmt();
+            auto* s = at_line(new p2p::IfStmt());
             s->branches = std::move((yyvsp[-1].branch_list)->items);
             delete (yyvsp[-1].branch_list);
             (yyval.stmt) = s;
         }
-#line 3349 "build/parser.cpp"
+#line 3359 "build/parser.cpp"
     break;
 
   case 145: /* do_stmt: K_DO branches K_OD  */
-#line 1000 "src/parser.y"
+#line 1010 "src/parser.y"
         {
-            auto* s = new p2p::DoStmt();
+            auto* s = at_line(new p2p::DoStmt());
             s->branches = std::move((yyvsp[-1].branch_list)->items);
             delete (yyvsp[-1].branch_list);
             (yyval.stmt) = s;
         }
-#line 3360 "build/parser.cpp"
+#line 3370 "build/parser.cpp"
     break;
 
   case 146: /* branches: branch  */
-#line 1010 "src/parser.y"
+#line 1020 "src/parser.y"
         {
             auto* l = new BranchList();
             l->items.emplace_back(std::move(*(yyvsp[0].branch)));
             delete (yyvsp[0].branch);
             (yyval.branch_list) = l;
         }
-#line 3371 "build/parser.cpp"
+#line 3381 "build/parser.cpp"
     break;
 
   case 147: /* branches: branches branch  */
-#line 1017 "src/parser.y"
+#line 1027 "src/parser.y"
         {
             (yyvsp[-1].branch_list)->items.emplace_back(std::move(*(yyvsp[0].branch)));
             delete (yyvsp[0].branch);
             (yyval.branch_list) = (yyvsp[-1].branch_list);
         }
-#line 3381 "build/parser.cpp"
+#line 3391 "build/parser.cpp"
     break;
 
   case 148: /* branch: OP_DCOLON stmt_seq  */
-#line 1029 "src/parser.y"
+#line 1039 "src/parser.y"
         {
             auto* b = new p2p::GuardedBranch();
             b->is_else = false;
@@ -3389,11 +3399,11 @@ yyreduce:
             delete (yyvsp[0].stmt_list);
             (yyval.branch) = b;
         }
-#line 3393 "build/parser.cpp"
+#line 3403 "build/parser.cpp"
     break;
 
   case 149: /* branch: OP_DCOLON K_ELSE OP_ARROW stmt_seq  */
-#line 1037 "src/parser.y"
+#line 1047 "src/parser.y"
         {
             auto* b = new p2p::GuardedBranch();
             b->is_else = true;
@@ -3401,11 +3411,11 @@ yyreduce:
             delete (yyvsp[0].stmt_list);
             (yyval.branch) = b;
         }
-#line 3405 "build/parser.cpp"
+#line 3415 "build/parser.cpp"
     break;
 
   case 150: /* branch: OP_DCOLON K_ELSE OP_ARROW stmt_seq ';'  */
-#line 1045 "src/parser.y"
+#line 1055 "src/parser.y"
         {
             auto* b = new p2p::GuardedBranch();
             b->is_else = true;
@@ -3413,11 +3423,11 @@ yyreduce:
             delete (yyvsp[-1].stmt_list);
             (yyval.branch) = b;
         }
-#line 3417 "build/parser.cpp"
+#line 3427 "build/parser.cpp"
     break;
 
   case 151: /* branch: OP_DCOLON stmt_seq ';'  */
-#line 1053 "src/parser.y"
+#line 1063 "src/parser.y"
         {
             auto* b = new p2p::GuardedBranch();
             b->is_else = false;
@@ -3425,35 +3435,35 @@ yyreduce:
             delete (yyvsp[-1].stmt_list);
             (yyval.branch) = b;
         }
-#line 3429 "build/parser.cpp"
+#line 3439 "build/parser.cpp"
     break;
 
   case 152: /* atomic_stmt: K_ATOMIC stmt_block  */
-#line 1065 "src/parser.y"
+#line 1075 "src/parser.y"
         {
-            auto* s = new p2p::AtomicStmt();
+            auto* s = at_line(new p2p::AtomicStmt());
             s->body = std::move((yyvsp[0].stmt_list)->items);
             delete (yyvsp[0].stmt_list);
             (yyval.stmt) = s;
         }
-#line 3440 "build/parser.cpp"
+#line 3450 "build/parser.cpp"
     break;
 
   case 153: /* dstep_stmt: K_D_STEP stmt_block  */
-#line 1075 "src/parser.y"
+#line 1085 "src/parser.y"
         {
-            auto* s = new p2p::DStepStmt();
+            auto* s = at_line(new p2p::DStepStmt());
             s->body = std::move((yyvsp[0].stmt_list)->items);
             delete (yyvsp[0].stmt_list);
             (yyval.stmt) = s;
         }
-#line 3451 "build/parser.cpp"
+#line 3461 "build/parser.cpp"
     break;
 
   case 154: /* for_stmt: K_FOR '(' IDENT ':' expr OP_DOTDOT expr ')' stmt_block  */
-#line 1086 "src/parser.y"
+#line 1096 "src/parser.y"
         {
-            auto* s = new p2p::ForStmt();
+            auto* s = at_line(new p2p::ForStmt());
             s->var = (yyvsp[-6].str_val); free((yyvsp[-6].str_val));
             s->low.reset((yyvsp[-4].expr));
             s->high.reset((yyvsp[-2].expr));
@@ -3461,455 +3471,455 @@ yyreduce:
             delete (yyvsp[0].stmt_list);
             (yyval.stmt) = s;
         }
-#line 3465 "build/parser.cpp"
+#line 3475 "build/parser.cpp"
     break;
 
   case 155: /* select_stmt: K_SELECT '(' IDENT ':' expr OP_DOTDOT expr ')'  */
-#line 1101 "src/parser.y"
+#line 1111 "src/parser.y"
         {
-            auto* s = new p2p::SelectStmt();
+            auto* s = at_line(new p2p::SelectStmt());
             s->var = (yyvsp[-5].str_val); free((yyvsp[-5].str_val));
             s->low.reset((yyvsp[-3].expr));
             s->high.reset((yyvsp[-1].expr));
             (yyval.stmt) = s;
         }
-#line 3477 "build/parser.cpp"
+#line 3487 "build/parser.cpp"
     break;
 
   case 156: /* send_stmt: expr '!' expr_args_nonempty  */
-#line 1113 "src/parser.y"
+#line 1123 "src/parser.y"
         {
-            auto* s = new p2p::SendStmt();
+            auto* s = at_line(new p2p::SendStmt());
             s->chan.reset((yyvsp[-2].expr));
             s->args = std::move((yyvsp[0].expr_list)->items);
             delete (yyvsp[0].expr_list);
             (yyval.stmt) = s;
         }
-#line 3489 "build/parser.cpp"
+#line 3499 "build/parser.cpp"
     break;
 
   case 157: /* recv_stmt: expr '?' expr_args_nonempty  */
-#line 1125 "src/parser.y"
+#line 1135 "src/parser.y"
         {
-            auto* s = new p2p::RecvStmt();
+            auto* s = at_line(new p2p::RecvStmt());
             s->chan.reset((yyvsp[-2].expr));
             s->args = std::move((yyvsp[0].expr_list)->items);
             delete (yyvsp[0].expr_list);
             (yyval.stmt) = s;
         }
-#line 3501 "build/parser.cpp"
+#line 3511 "build/parser.cpp"
     break;
 
   case 158: /* run_stmt: K_RUN IDENT '(' expr_args ')'  */
-#line 1139 "src/parser.y"
+#line 1149 "src/parser.y"
         {
-            auto* s = new p2p::RunStmt();
+            auto* s = at_line(new p2p::RunStmt());
             s->name = (yyvsp[-3].str_val); free((yyvsp[-3].str_val));
             s->args = std::move((yyvsp[-1].expr_list)->items);
             delete (yyvsp[-1].expr_list);
             (yyval.stmt) = s;
         }
-#line 3513 "build/parser.cpp"
+#line 3523 "build/parser.cpp"
     break;
 
   case 159: /* break_stmt: K_BREAK  */
-#line 1148 "src/parser.y"
-                            { (yyval.stmt) = new p2p::BreakStmt(); }
-#line 3519 "build/parser.cpp"
+#line 1158 "src/parser.y"
+                            { (yyval.stmt) = at_line(new p2p::BreakStmt()); }
+#line 3529 "build/parser.cpp"
     break;
 
   case 160: /* skip_stmt: K_SKIP  */
-#line 1149 "src/parser.y"
-                            { (yyval.stmt) = new p2p::SkipStmt(); }
-#line 3525 "build/parser.cpp"
-    break;
-
-  case 161: /* goto_stmt: K_GOTO IDENT  */
-#line 1151 "src/parser.y"
-        {
-            auto* g = new p2p::GotoStmt();
-            g->label = (yyvsp[0].str_val); free((yyvsp[0].str_val));
-            (yyval.stmt) = g;
-        }
+#line 1159 "src/parser.y"
+                            { (yyval.stmt) = at_line(new p2p::SkipStmt()); }
 #line 3535 "build/parser.cpp"
     break;
 
+  case 161: /* goto_stmt: K_GOTO IDENT  */
+#line 1161 "src/parser.y"
+        {
+            auto* g = at_line(new p2p::GotoStmt());
+            g->label = (yyvsp[0].str_val); free((yyvsp[0].str_val));
+            (yyval.stmt) = g;
+        }
+#line 3545 "build/parser.cpp"
+    break;
+
   case 162: /* expr_args: %empty  */
-#line 1160 "src/parser.y"
+#line 1170 "src/parser.y"
                                         { (yyval.expr_list) = new ExprList(); }
-#line 3541 "build/parser.cpp"
+#line 3551 "build/parser.cpp"
     break;
 
   case 163: /* expr_args: expr_args_nonempty  */
-#line 1161 "src/parser.y"
+#line 1171 "src/parser.y"
                                         { (yyval.expr_list) = (yyvsp[0].expr_list); }
-#line 3547 "build/parser.cpp"
+#line 3557 "build/parser.cpp"
     break;
 
   case 164: /* expr_args_nonempty: expr_no_ternary  */
-#line 1166 "src/parser.y"
+#line 1176 "src/parser.y"
         {
             auto* l = new ExprList();
             l->items.emplace_back((yyvsp[0].expr));
             (yyval.expr_list) = l;
         }
-#line 3557 "build/parser.cpp"
+#line 3567 "build/parser.cpp"
     break;
 
   case 165: /* expr_args_nonempty: expr_args_nonempty ',' expr_no_ternary  */
-#line 1172 "src/parser.y"
+#line 1182 "src/parser.y"
         {
             (yyvsp[-2].expr_list)->items.emplace_back((yyvsp[0].expr));
             (yyval.expr_list) = (yyvsp[-2].expr_list);
         }
-#line 3566 "build/parser.cpp"
+#line 3576 "build/parser.cpp"
     break;
 
   case 166: /* expr: primary  */
-#line 1181 "src/parser.y"
+#line 1191 "src/parser.y"
                                          { (yyval.expr) = (yyvsp[0].expr); }
-#line 3572 "build/parser.cpp"
+#line 3582 "build/parser.cpp"
     break;
 
   case 167: /* expr: expr '+' expr  */
-#line 1182 "src/parser.y"
-                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Add, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3578 "build/parser.cpp"
+#line 1192 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_bin(p2p::BinaryOp::Add, (yyvsp[-2].expr), (yyvsp[0].expr))); }
+#line 3588 "build/parser.cpp"
     break;
 
   case 168: /* expr: expr '-' expr  */
-#line 1183 "src/parser.y"
-                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Sub, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3584 "build/parser.cpp"
+#line 1193 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_bin(p2p::BinaryOp::Sub, (yyvsp[-2].expr), (yyvsp[0].expr))); }
+#line 3594 "build/parser.cpp"
     break;
 
   case 169: /* expr: expr '*' expr  */
-#line 1184 "src/parser.y"
-                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Mul, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3590 "build/parser.cpp"
+#line 1194 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_bin(p2p::BinaryOp::Mul, (yyvsp[-2].expr), (yyvsp[0].expr))); }
+#line 3600 "build/parser.cpp"
     break;
 
   case 170: /* expr: expr '/' expr  */
-#line 1185 "src/parser.y"
-                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Div, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3596 "build/parser.cpp"
+#line 1195 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_bin(p2p::BinaryOp::Div, (yyvsp[-2].expr), (yyvsp[0].expr))); }
+#line 3606 "build/parser.cpp"
     break;
 
   case 171: /* expr: expr '%' expr  */
-#line 1186 "src/parser.y"
-                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Mod, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3602 "build/parser.cpp"
+#line 1196 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_bin(p2p::BinaryOp::Mod, (yyvsp[-2].expr), (yyvsp[0].expr))); }
+#line 3612 "build/parser.cpp"
     break;
 
   case 172: /* expr: expr OP_SHL expr  */
-#line 1187 "src/parser.y"
-                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Shl, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3608 "build/parser.cpp"
+#line 1197 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_bin(p2p::BinaryOp::Shl, (yyvsp[-2].expr), (yyvsp[0].expr))); }
+#line 3618 "build/parser.cpp"
     break;
 
   case 173: /* expr: expr OP_SHR expr  */
-#line 1188 "src/parser.y"
-                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Shr, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3614 "build/parser.cpp"
+#line 1198 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_bin(p2p::BinaryOp::Shr, (yyvsp[-2].expr), (yyvsp[0].expr))); }
+#line 3624 "build/parser.cpp"
     break;
 
   case 174: /* expr: expr '<' expr  */
-#line 1189 "src/parser.y"
-                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Lt,  (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3620 "build/parser.cpp"
+#line 1199 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_bin(p2p::BinaryOp::Lt,  (yyvsp[-2].expr), (yyvsp[0].expr))); }
+#line 3630 "build/parser.cpp"
     break;
 
   case 175: /* expr: expr '>' expr  */
-#line 1190 "src/parser.y"
-                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Gt,  (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3626 "build/parser.cpp"
+#line 1200 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_bin(p2p::BinaryOp::Gt,  (yyvsp[-2].expr), (yyvsp[0].expr))); }
+#line 3636 "build/parser.cpp"
     break;
 
   case 176: /* expr: expr OP_LE expr  */
-#line 1191 "src/parser.y"
-                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Le,  (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3632 "build/parser.cpp"
+#line 1201 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_bin(p2p::BinaryOp::Le,  (yyvsp[-2].expr), (yyvsp[0].expr))); }
+#line 3642 "build/parser.cpp"
     break;
 
   case 177: /* expr: expr OP_GE expr  */
-#line 1192 "src/parser.y"
-                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Ge,  (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3638 "build/parser.cpp"
+#line 1202 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_bin(p2p::BinaryOp::Ge,  (yyvsp[-2].expr), (yyvsp[0].expr))); }
+#line 3648 "build/parser.cpp"
     break;
 
   case 178: /* expr: expr OP_EQ expr  */
-#line 1193 "src/parser.y"
-                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Eq,  (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3644 "build/parser.cpp"
+#line 1203 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_bin(p2p::BinaryOp::Eq,  (yyvsp[-2].expr), (yyvsp[0].expr))); }
+#line 3654 "build/parser.cpp"
     break;
 
   case 179: /* expr: expr OP_NEQ expr  */
-#line 1194 "src/parser.y"
-                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Neq, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3650 "build/parser.cpp"
+#line 1204 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_bin(p2p::BinaryOp::Neq, (yyvsp[-2].expr), (yyvsp[0].expr))); }
+#line 3660 "build/parser.cpp"
     break;
 
   case 180: /* expr: expr OP_AND expr  */
-#line 1195 "src/parser.y"
-                                         { (yyval.expr) = make_bin(p2p::BinaryOp::And, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3656 "build/parser.cpp"
+#line 1205 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_bin(p2p::BinaryOp::And, (yyvsp[-2].expr), (yyvsp[0].expr))); }
+#line 3666 "build/parser.cpp"
     break;
 
   case 181: /* expr: expr OP_OR expr  */
-#line 1196 "src/parser.y"
-                                         { (yyval.expr) = make_bin(p2p::BinaryOp::Or,  (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3662 "build/parser.cpp"
+#line 1206 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_bin(p2p::BinaryOp::Or,  (yyvsp[-2].expr), (yyvsp[0].expr))); }
+#line 3672 "build/parser.cpp"
     break;
 
   case 182: /* expr: '-' expr  */
-#line 1197 "src/parser.y"
-                                         { (yyval.expr) = make_un(p2p::UnaryOp::Neg, (yyvsp[0].expr)); }
-#line 3668 "build/parser.cpp"
+#line 1207 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_un(p2p::UnaryOp::Neg, (yyvsp[0].expr))); }
+#line 3678 "build/parser.cpp"
     break;
 
   case 183: /* expr: '!' expr  */
-#line 1198 "src/parser.y"
-                                         { (yyval.expr) = make_un(p2p::UnaryOp::Not, (yyvsp[0].expr)); }
-#line 3674 "build/parser.cpp"
+#line 1208 "src/parser.y"
+                                         { (yyval.expr) = at_line(make_un(p2p::UnaryOp::Not, (yyvsp[0].expr))); }
+#line 3684 "build/parser.cpp"
     break;
 
   case 184: /* expr: expr OP_ARROW expr ':' expr  */
-#line 1200 "src/parser.y"
+#line 1210 "src/parser.y"
         {
-            auto* t = new p2p::TernaryExpr();
+            auto* t = at_line(new p2p::TernaryExpr());
             t->cond.reset((yyvsp[-4].expr));
             t->then_expr.reset((yyvsp[-2].expr));
             t->else_expr.reset((yyvsp[0].expr));
             (yyval.expr) = t;
         }
-#line 3686 "build/parser.cpp"
+#line 3696 "build/parser.cpp"
     break;
 
   case 185: /* expr_no_ternary: primary  */
-#line 1214 "src/parser.y"
+#line 1224 "src/parser.y"
                                          { (yyval.expr) = (yyvsp[0].expr); }
-#line 3692 "build/parser.cpp"
+#line 3702 "build/parser.cpp"
     break;
 
   case 186: /* expr_no_ternary: expr_no_ternary '+' expr_no_ternary  */
-#line 1215 "src/parser.y"
+#line 1225 "src/parser.y"
                                            { (yyval.expr) = make_bin(p2p::BinaryOp::Add, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3698 "build/parser.cpp"
+#line 3708 "build/parser.cpp"
     break;
 
   case 187: /* expr_no_ternary: expr_no_ternary '-' expr_no_ternary  */
-#line 1216 "src/parser.y"
+#line 1226 "src/parser.y"
                                            { (yyval.expr) = make_bin(p2p::BinaryOp::Sub, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3704 "build/parser.cpp"
+#line 3714 "build/parser.cpp"
     break;
 
   case 188: /* expr_no_ternary: expr_no_ternary '*' expr_no_ternary  */
-#line 1217 "src/parser.y"
+#line 1227 "src/parser.y"
                                            { (yyval.expr) = make_bin(p2p::BinaryOp::Mul, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3710 "build/parser.cpp"
+#line 3720 "build/parser.cpp"
     break;
 
   case 189: /* expr_no_ternary: expr_no_ternary '/' expr_no_ternary  */
-#line 1218 "src/parser.y"
+#line 1228 "src/parser.y"
                                            { (yyval.expr) = make_bin(p2p::BinaryOp::Div, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3716 "build/parser.cpp"
+#line 3726 "build/parser.cpp"
     break;
 
   case 190: /* expr_no_ternary: expr_no_ternary '%' expr_no_ternary  */
-#line 1219 "src/parser.y"
+#line 1229 "src/parser.y"
                                            { (yyval.expr) = make_bin(p2p::BinaryOp::Mod, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3722 "build/parser.cpp"
+#line 3732 "build/parser.cpp"
     break;
 
   case 191: /* expr_no_ternary: expr_no_ternary OP_SHL expr_no_ternary  */
-#line 1220 "src/parser.y"
+#line 1230 "src/parser.y"
                                              { (yyval.expr) = make_bin(p2p::BinaryOp::Shl, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3728 "build/parser.cpp"
+#line 3738 "build/parser.cpp"
     break;
 
   case 192: /* expr_no_ternary: expr_no_ternary OP_SHR expr_no_ternary  */
-#line 1221 "src/parser.y"
+#line 1231 "src/parser.y"
                                              { (yyval.expr) = make_bin(p2p::BinaryOp::Shr, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3734 "build/parser.cpp"
+#line 3744 "build/parser.cpp"
     break;
 
   case 193: /* expr_no_ternary: expr_no_ternary '<' expr_no_ternary  */
-#line 1222 "src/parser.y"
+#line 1232 "src/parser.y"
                                            { (yyval.expr) = make_bin(p2p::BinaryOp::Lt,  (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3740 "build/parser.cpp"
+#line 3750 "build/parser.cpp"
     break;
 
   case 194: /* expr_no_ternary: expr_no_ternary '>' expr_no_ternary  */
-#line 1223 "src/parser.y"
+#line 1233 "src/parser.y"
                                            { (yyval.expr) = make_bin(p2p::BinaryOp::Gt,  (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3746 "build/parser.cpp"
+#line 3756 "build/parser.cpp"
     break;
 
   case 195: /* expr_no_ternary: expr_no_ternary OP_LE expr_no_ternary  */
-#line 1224 "src/parser.y"
+#line 1234 "src/parser.y"
                                             { (yyval.expr) = make_bin(p2p::BinaryOp::Le, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3752 "build/parser.cpp"
+#line 3762 "build/parser.cpp"
     break;
 
   case 196: /* expr_no_ternary: expr_no_ternary OP_GE expr_no_ternary  */
-#line 1225 "src/parser.y"
+#line 1235 "src/parser.y"
                                             { (yyval.expr) = make_bin(p2p::BinaryOp::Ge, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3758 "build/parser.cpp"
+#line 3768 "build/parser.cpp"
     break;
 
   case 197: /* expr_no_ternary: expr_no_ternary OP_EQ expr_no_ternary  */
-#line 1226 "src/parser.y"
+#line 1236 "src/parser.y"
                                             { (yyval.expr) = make_bin(p2p::BinaryOp::Eq, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3764 "build/parser.cpp"
+#line 3774 "build/parser.cpp"
     break;
 
   case 198: /* expr_no_ternary: expr_no_ternary OP_NEQ expr_no_ternary  */
-#line 1227 "src/parser.y"
+#line 1237 "src/parser.y"
                                              { (yyval.expr) = make_bin(p2p::BinaryOp::Neq, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3770 "build/parser.cpp"
+#line 3780 "build/parser.cpp"
     break;
 
   case 199: /* expr_no_ternary: expr_no_ternary OP_AND expr_no_ternary  */
-#line 1228 "src/parser.y"
+#line 1238 "src/parser.y"
                                              { (yyval.expr) = make_bin(p2p::BinaryOp::And, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3776 "build/parser.cpp"
+#line 3786 "build/parser.cpp"
     break;
 
   case 200: /* expr_no_ternary: expr_no_ternary OP_OR expr_no_ternary  */
-#line 1229 "src/parser.y"
+#line 1239 "src/parser.y"
                                              { (yyval.expr) = make_bin(p2p::BinaryOp::Or, (yyvsp[-2].expr), (yyvsp[0].expr)); }
-#line 3782 "build/parser.cpp"
+#line 3792 "build/parser.cpp"
     break;
 
   case 201: /* expr_no_ternary: '-' expr_no_ternary  */
-#line 1230 "src/parser.y"
+#line 1240 "src/parser.y"
                                            { (yyval.expr) = make_un(p2p::UnaryOp::Neg, (yyvsp[0].expr)); }
-#line 3788 "build/parser.cpp"
+#line 3798 "build/parser.cpp"
     break;
 
   case 202: /* expr_no_ternary: '!' expr_no_ternary  */
-#line 1231 "src/parser.y"
+#line 1241 "src/parser.y"
                                            { (yyval.expr) = make_un(p2p::UnaryOp::Not, (yyvsp[0].expr)); }
-#line 3794 "build/parser.cpp"
+#line 3804 "build/parser.cpp"
     break;
 
   case 203: /* primary: INT_LITERAL  */
-#line 1235 "src/parser.y"
-                           { (yyval.expr) = new p2p::IntLiteral((long)(yyvsp[0].int_val)); }
-#line 3800 "build/parser.cpp"
+#line 1245 "src/parser.y"
+                           { (yyval.expr) = at_line(new p2p::IntLiteral((long)(yyvsp[0].int_val))); }
+#line 3810 "build/parser.cpp"
     break;
 
   case 204: /* primary: K_TRUE  */
-#line 1236 "src/parser.y"
-                           { (yyval.expr) = new p2p::BoolLiteral(true); }
-#line 3806 "build/parser.cpp"
+#line 1246 "src/parser.y"
+                           { (yyval.expr) = at_line(new p2p::BoolLiteral(true)); }
+#line 3816 "build/parser.cpp"
     break;
 
   case 205: /* primary: K_FALSE  */
-#line 1237 "src/parser.y"
-                           { (yyval.expr) = new p2p::BoolLiteral(false); }
-#line 3812 "build/parser.cpp"
-    break;
-
-  case 206: /* primary: IDENT  */
-#line 1239 "src/parser.y"
-        {
-            auto* e = new p2p::IdentExpr((yyvsp[0].str_val));
-            free((yyvsp[0].str_val));
-            (yyval.expr) = e;
-        }
+#line 1247 "src/parser.y"
+                           { (yyval.expr) = at_line(new p2p::BoolLiteral(false)); }
 #line 3822 "build/parser.cpp"
     break;
 
-  case 207: /* primary: '(' expr ')'  */
-#line 1245 "src/parser.y"
+  case 206: /* primary: IDENT  */
+#line 1249 "src/parser.y"
         {
-            auto* p = new p2p::ParenExpr();
-            p->inner.reset((yyvsp[-1].expr));
-            (yyval.expr) = p;
+            auto* e = at_line(new p2p::IdentExpr((yyvsp[0].str_val)));
+            free((yyvsp[0].str_val));
+            (yyval.expr) = e;
         }
 #line 3832 "build/parser.cpp"
     break;
 
-  case 208: /* primary: primary '[' expr ']'  */
-#line 1251 "src/parser.y"
+  case 207: /* primary: '(' expr ')'  */
+#line 1255 "src/parser.y"
         {
-            auto* e = new p2p::IndexExpr();
+            auto* p = at_line(new p2p::ParenExpr());
+            p->inner.reset((yyvsp[-1].expr));
+            (yyval.expr) = p;
+        }
+#line 3842 "build/parser.cpp"
+    break;
+
+  case 208: /* primary: primary '[' expr ']'  */
+#line 1261 "src/parser.y"
+        {
+            auto* e = at_line(new p2p::IndexExpr());
             e->base.reset((yyvsp[-3].expr));
             e->index.reset((yyvsp[-1].expr));
             (yyval.expr) = e;
         }
-#line 3843 "build/parser.cpp"
+#line 3853 "build/parser.cpp"
     break;
 
   case 209: /* primary: primary '.' IDENT  */
-#line 1258 "src/parser.y"
+#line 1268 "src/parser.y"
         {
-            auto* e = new p2p::FieldExpr();
+            auto* e = at_line(new p2p::FieldExpr());
             e->base.reset((yyvsp[-2].expr));
             e->field = (yyvsp[0].str_val);
             free((yyvsp[0].str_val));
             (yyval.expr) = e;
         }
-#line 3855 "build/parser.cpp"
+#line 3865 "build/parser.cpp"
     break;
 
   case 210: /* primary: primary OP_INC  */
-#line 1265 "src/parser.y"
+#line 1275 "src/parser.y"
                            { (yyval.expr) = make_un(p2p::UnaryOp::PostInc, (yyvsp[-1].expr)); }
-#line 3861 "build/parser.cpp"
+#line 3871 "build/parser.cpp"
     break;
 
   case 211: /* primary: primary OP_DEC  */
-#line 1266 "src/parser.y"
+#line 1276 "src/parser.y"
                            { (yyval.expr) = make_un(p2p::UnaryOp::PostDec, (yyvsp[-1].expr)); }
-#line 3867 "build/parser.cpp"
+#line 3877 "build/parser.cpp"
     break;
 
   case 212: /* primary: OP_INC primary  */
-#line 1267 "src/parser.y"
+#line 1277 "src/parser.y"
                                                 { (yyval.expr) = make_un(p2p::UnaryOp::PreInc,  (yyvsp[0].expr)); }
-#line 3873 "build/parser.cpp"
+#line 3883 "build/parser.cpp"
     break;
 
   case 213: /* primary: OP_DEC primary  */
-#line 1268 "src/parser.y"
+#line 1278 "src/parser.y"
                                                 { (yyval.expr) = make_un(p2p::UnaryOp::PreDec,  (yyvsp[0].expr)); }
-#line 3879 "build/parser.cpp"
+#line 3889 "build/parser.cpp"
     break;
 
   case 214: /* primary: K_NEMPTY '(' expr ')'  */
-#line 1269 "src/parser.y"
-                             { (yyval.expr) = make_builtin(p2p::BuiltinKind::Nempty, (yyvsp[-1].expr)); }
-#line 3885 "build/parser.cpp"
+#line 1279 "src/parser.y"
+                             { (yyval.expr) = at_line(make_builtin(p2p::BuiltinKind::Nempty, (yyvsp[-1].expr))); }
+#line 3895 "build/parser.cpp"
     break;
 
   case 215: /* primary: K_EMPTY '(' expr ')'  */
-#line 1270 "src/parser.y"
-                             { (yyval.expr) = make_builtin(p2p::BuiltinKind::Empty,  (yyvsp[-1].expr)); }
-#line 3891 "build/parser.cpp"
+#line 1280 "src/parser.y"
+                             { (yyval.expr) = at_line(make_builtin(p2p::BuiltinKind::Empty,  (yyvsp[-1].expr))); }
+#line 3901 "build/parser.cpp"
     break;
 
   case 216: /* primary: K_LEN '(' expr ')'  */
-#line 1271 "src/parser.y"
-                             { (yyval.expr) = make_builtin(p2p::BuiltinKind::Len,    (yyvsp[-1].expr)); }
-#line 3897 "build/parser.cpp"
+#line 1281 "src/parser.y"
+                             { (yyval.expr) = at_line(make_builtin(p2p::BuiltinKind::Len,    (yyvsp[-1].expr))); }
+#line 3907 "build/parser.cpp"
     break;
 
   case 217: /* primary: K_FULL '(' expr ')'  */
-#line 1272 "src/parser.y"
-                             { (yyval.expr) = make_builtin(p2p::BuiltinKind::Full,   (yyvsp[-1].expr)); }
-#line 3903 "build/parser.cpp"
+#line 1282 "src/parser.y"
+                             { (yyval.expr) = at_line(make_builtin(p2p::BuiltinKind::Full,   (yyvsp[-1].expr))); }
+#line 3913 "build/parser.cpp"
     break;
 
   case 218: /* primary: K_NFULL '(' expr ')'  */
-#line 1273 "src/parser.y"
-                             { (yyval.expr) = make_builtin(p2p::BuiltinKind::Nfull,  (yyvsp[-1].expr)); }
-#line 3909 "build/parser.cpp"
+#line 1283 "src/parser.y"
+                             { (yyval.expr) = at_line(make_builtin(p2p::BuiltinKind::Nfull,  (yyvsp[-1].expr))); }
+#line 3919 "build/parser.cpp"
     break;
 
 
-#line 3913 "build/parser.cpp"
+#line 3923 "build/parser.cpp"
 
       default: break;
     }
@@ -4133,7 +4143,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 1276 "src/parser.y"
+#line 1286 "src/parser.y"
 
 
 void yyerror(const char* s) {

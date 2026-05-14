@@ -35,6 +35,16 @@ int g_parse_mode = 0;
 #define PARSE_EXPR        1
 #define PARSE_STMT_BLOCK  2
 
+/* Stamp a freshly-created AST node with the current source line.
+   yylineno is approximate at reduce time (the parser has read a bit
+   ahead), but it points close enough to the construct for diagnostics. */
+template <typename T>
+static T* at_line(T* node) {
+    node->line = yylineno;
+    node->column = 0;   /* column tracking not wired up; line is enough */
+    return node;
+}
+
 /* Expression-building helpers. */
 static p2p::Expr* make_bin(p2p::BinaryOp op, p2p::Expr* lhs, p2p::Expr* rhs) {
     auto* e = new p2p::BinaryExpr();
@@ -86,7 +96,7 @@ static p2p::Type* clone_type(const p2p::Type& src) {
 
 /* Wrap a (possibly composite) expression into an ExprStmt. */
 static p2p::Stmt* wrap_expr_stmt(p2p::Expr* e) {
-    auto* s = new p2p::ExprStmt();
+    auto* s = at_line(new p2p::ExprStmt());
     s->expr.reset(e);
     return s;
 }
@@ -110,7 +120,7 @@ static p2p::Stmt* wrap_expr_stmt(p2p::Expr* e) {
     }
 
     static void push_decls(VarDeclList& list) {
-        if (!g_root) g_root = new p2p::Module();
+        if (!g_root) g_root = at_line(new p2p::Module());
         for (auto& d : list.items) {
             g_root->declarations.emplace_back(std::move(d));
         }
@@ -120,7 +130,7 @@ static p2p::Stmt* wrap_expr_stmt(p2p::Expr* e) {
        into a sequence of LocalVarDeclStmt nodes, appended to `out`. */
     static void wrap_local_decls(VarDeclList& list, StmtList& out) {
         for (auto& d : list.items) {
-            auto* s = new p2p::LocalVarDeclStmt();
+            auto* s = at_line(new p2p::LocalVarDeclStmt());
             s->decl = std::move(d);
             out.items.emplace_back(s);
         }
@@ -229,7 +239,7 @@ static p2p::Stmt* wrap_expr_stmt(p2p::Expr* e) {
 %%
 
 start:
-      START_PROGRAM     program_body   { if (!g_root) g_root = new p2p::Module(); }
+      START_PROGRAM     program_body   { if (!g_root) g_root = at_line(new p2p::Module()); }
     | START_EXPR        expr_body
     | START_STMT_BLOCK  stmt_body
     ;
@@ -238,7 +248,7 @@ program_body:
       /* empty */
     | program_body top_decl
         {
-            if (!g_root) g_root = new p2p::Module();
+            if (!g_root) g_root = at_line(new p2p::Module());
             if ($2) g_root->declarations.emplace_back($2);
         }
     ;
@@ -269,14 +279,14 @@ var_decl_stmt:
 chan_decl_stmt:
       chan_type IDENT ';'
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
             d->name = $2; free($2);
             d->type.reset($1);
             $$ = d;
         }
     | chan_type IDENT '=' '[' expr ']' K_OF '{' type_list '}' ';'
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
             d->name = $2; free($2);
             d->type.reset($1);
             if (auto* lit = dynamic_cast<p2p::IntLiteral*>($5)) {
@@ -354,27 +364,27 @@ declarator_list:
 declarator:
       IDENT
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
             d->name = $1; free($1);
             $$ = d;
         }
     | IDENT '=' expr
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
             d->name = $1; free($1);
             d->init.reset($3);
             $$ = d;
         }
     | IDENT '[' expr ']'
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
             d->name = $1; free($1);
             d->array_size.reset($3);
             $$ = d;
         }
     | IDENT '[' expr ']' '=' expr
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
             d->name = $1; free($1);
             d->array_size.reset($3);
             d->init.reset($6);
@@ -400,9 +410,9 @@ type_list:
 typedef_decl:
     K_TYPEDEF IDENT '{' field_decl_list '}' ';'
         {
-            auto* td = new p2p::TypedefDecl();
+            auto* td = at_line(new p2p::TypedefDecl());
             td->name = $2;
-            p2p::typedef_register(td->name);   /* <-- добавь эту строку */
+            p2p::typedef_register(td->name);
             free($2);
             td->fields = std::move($4->items);
             delete $4;
@@ -446,13 +456,13 @@ field_decl_one_or_more:
 field_one:
       IDENT
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
             d->name = $1; free($1);
             $$ = d;
         }
     | IDENT '[' expr ']'
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
             d->name = $1; free($1);
             d->array_size.reset($3);
             $$ = d;
@@ -463,14 +473,14 @@ field_one:
 mtype_decl:
       T_MTYPE '=' '{' ident_list '}' ';'
         {
-            auto* m = new p2p::MtypeDecl();
+            auto* m = at_line(new p2p::MtypeDecl());
             m->names = std::move($4->items);
             delete $4;
             $$ = m;
         }
     | T_MTYPE ':' IDENT '=' '{' ident_list '}' ';'
         {
-            auto* m = new p2p::MtypeDecl();
+            auto* m = at_line(new p2p::MtypeDecl());
             m->set_name = $3; free($3);
             m->names = std::move($6->items);
             delete $6;
@@ -498,7 +508,7 @@ ident_list:
 ltl_decl:
     K_LTL IDENT '{' ltl_formula '}'
         {
-            auto* l = new p2p::LtlDecl();
+            auto* l = at_line(new p2p::LtlDecl());
             l->name = $2; free($2);
             l->formula.reset($4);
             $$ = l;
@@ -509,21 +519,21 @@ ltl_formula:
       ltl_unary                          { $$ = $1; }
     | ltl_formula OP_AND ltl_formula
         {
-            auto* f = new p2p::LtlFormula();
+            auto* f = at_line(new p2p::LtlFormula());
             f->op = p2p::LtlOp::And;
             f->lhs.reset($1); f->rhs.reset($3);
             $$ = f;
         }
     | ltl_formula OP_OR ltl_formula
         {
-            auto* f = new p2p::LtlFormula();
+            auto* f = at_line(new p2p::LtlFormula());
             f->op = p2p::LtlOp::Or;
             f->lhs.reset($1); f->rhs.reset($3);
             $$ = f;
         }
     | ltl_formula OP_ARROW ltl_formula
         {
-            auto* f = new p2p::LtlFormula();
+            auto* f = at_line(new p2p::LtlFormula());
             f->op = p2p::LtlOp::Implies;
             f->lhs.reset($1); f->rhs.reset($3);
             $$ = f;
@@ -533,21 +543,21 @@ ltl_formula:
 ltl_unary:
       LTL_ALWAYS ltl_unary
         {
-            auto* f = new p2p::LtlFormula();
+            auto* f = at_line(new p2p::LtlFormula());
             f->op = p2p::LtlOp::Always;
             f->lhs.reset($2);
             $$ = f;
         }
     | LTL_EVENTUALLY ltl_unary
         {
-            auto* f = new p2p::LtlFormula();
+            auto* f = at_line(new p2p::LtlFormula());
             f->op = p2p::LtlOp::Eventually;
             f->lhs.reset($2);
             $$ = f;
         }
     | '!' ltl_unary
         {
-            auto* f = new p2p::LtlFormula();
+            auto* f = at_line(new p2p::LtlFormula());
             f->op = p2p::LtlOp::Not;
             f->lhs.reset($2);
             $$ = f;
@@ -555,7 +565,7 @@ ltl_unary:
     | '(' ltl_formula ')'                { $$ = $2; }
     | ltl_atom
         {
-            auto* f = new p2p::LtlFormula();
+            auto* f = at_line(new p2p::LtlFormula());
             f->op = p2p::LtlOp::Atom;
             f->atom.reset($1);
             $$ = f;
@@ -563,21 +573,21 @@ ltl_unary:
     ;
 
 ltl_atom:
-      INT_LITERAL                       { $$ = new p2p::IntLiteral((long)$1); }
-    | K_TRUE                            { $$ = new p2p::BoolLiteral(true); }
-    | K_FALSE                           { $$ = new p2p::BoolLiteral(false); }
+      INT_LITERAL                       { $$ = at_line(new p2p::IntLiteral((long)$1)); }
+    | K_TRUE                            { $$ = at_line(new p2p::BoolLiteral(true)); }
+    | K_FALSE                           { $$ = at_line(new p2p::BoolLiteral(false)); }
     | IDENT                             {
-                                          auto* e = new p2p::IdentExpr($1);
+                                          auto* e = at_line(new p2p::IdentExpr($1));
                                           free($1);
                                           $$ = e;
                                         }
     | ltl_atom '[' ltl_atom ']'         {
-                                          auto* e = new p2p::IndexExpr();
+                                          auto* e = at_line(new p2p::IndexExpr());
                                           e->base.reset($1); e->index.reset($3);
                                           $$ = e;
                                         }
     | ltl_atom '.' IDENT                {
-                                          auto* e = new p2p::FieldExpr();
+                                          auto* e = at_line(new p2p::FieldExpr());
                                           e->base.reset($1);
                                           e->field = $3; free($3);
                                           $$ = e;
@@ -605,7 +615,7 @@ ltl_atom:
 proctype_decl:
       K_PROCTYPE IDENT '(' params_opt ')' stmt_block
         {
-            auto* p = new p2p::ProctypeDecl();
+            auto* p = at_line(new p2p::ProctypeDecl());
             p->name = $2; free($2);
             p->params = std::move($4->items);
             delete $4;
@@ -615,7 +625,7 @@ proctype_decl:
         }
     | K_ACTIVE K_PROCTYPE IDENT '(' params_opt ')' stmt_block
         {
-            auto* p = new p2p::ProctypeDecl();
+            auto* p = at_line(new p2p::ProctypeDecl());
             p->name = $3; free($3);
             p->instance_count = 1;
             p->params = std::move($5->items);
@@ -626,7 +636,7 @@ proctype_decl:
         }
     | K_ACTIVE '[' INT_LITERAL ']' K_PROCTYPE IDENT '(' params_opt ')' stmt_block
         {
-            auto* p = new p2p::ProctypeDecl();
+            auto* p = at_line(new p2p::ProctypeDecl());
             p->name = $6; free($6);
             p->instance_count = $3 > 0 ? $3 : 1;
             p->params = std::move($8->items);
@@ -642,7 +652,7 @@ proctype_decl:
 inline_decl:
     K_INLINE IDENT '(' ident_list_opt ')' stmt_block
         {
-            auto* d = new p2p::InlineDecl();
+            auto* d = at_line(new p2p::InlineDecl());
             d->name = $2; free($2);
             /* convert IdentList into ParamList with untyped Params */
             for (auto& n : $4->items) {
@@ -661,7 +671,7 @@ inline_decl:
 init_decl:
     K_INIT stmt_block
         {
-            auto* d = new p2p::InitDecl();
+            auto* d = at_line(new p2p::InitDecl());
             d->body = std::move($2->items);
             delete $2;
             $$ = d;
@@ -890,10 +900,10 @@ local_var_decl_stmt:
 local_chan_decl_stmt:
       chan_type IDENT ';'
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
             d->name = $2; free($2);
             d->type.reset($1);
-            auto* s = new p2p::LocalVarDeclStmt();
+            auto* s = at_line(new p2p::LocalVarDeclStmt());
             s->decl.reset(d);
             auto* out = new StmtList();
             out->items.emplace_back(s);
@@ -901,7 +911,7 @@ local_chan_decl_stmt:
         }
     | chan_type IDENT '=' '[' expr ']' K_OF '{' type_list '}' ';'
         {
-            auto* d = new p2p::VarDecl();
+            auto* d = at_line(new p2p::VarDecl());
             d->name = $2; free($2);
             d->type.reset($1);
             if (auto* lit = dynamic_cast<p2p::IntLiteral*>($5)) {
@@ -912,7 +922,7 @@ local_chan_decl_stmt:
             delete $5;
             d->type->chan_msg_types = std::move($9->items);
             delete $9;
-            auto* s = new p2p::LocalVarDeclStmt();
+            auto* s = at_line(new p2p::LocalVarDeclStmt());
             s->decl.reset(d);
             auto* out = new StmtList();
             out->items.emplace_back(s);
@@ -937,7 +947,7 @@ stmt:
     | goto_stmt                         { $$ = $1; }
     | IDENT ':' stmt
         {
-            auto* l = new p2p::LabeledStmt();
+            auto* l = at_line(new p2p::LabeledStmt());
             l->label = $1; free($1);
             l->stmt.reset($3);
             $$ = l;
@@ -960,14 +970,14 @@ assign_or_expr_stmt:
                 delete $1; delete $3;
                 YYERROR;
             }
-            auto* a = new p2p::AssignStmt();
+            auto* a = at_line(new p2p::AssignStmt());
             a->lhs.reset($1);
             a->rhs.reset($3);
             $$ = a;
         }
     | IDENT '(' expr_args ')'
         {
-            auto* c = new p2p::InlineCallStmt();
+            auto* c = at_line(new p2p::InlineCallStmt());
             c->name = $1; free($1);
             c->args = std::move($3->items);
             delete $3;
@@ -987,7 +997,7 @@ simple_stmt:
 if_stmt:
     K_IF branches K_FI
         {
-            auto* s = new p2p::IfStmt();
+            auto* s = at_line(new p2p::IfStmt());
             s->branches = std::move($2->items);
             delete $2;
             $$ = s;
@@ -998,7 +1008,7 @@ if_stmt:
 do_stmt:
     K_DO branches K_OD
         {
-            auto* s = new p2p::DoStmt();
+            auto* s = at_line(new p2p::DoStmt());
             s->branches = std::move($2->items);
             delete $2;
             $$ = s;
@@ -1063,7 +1073,7 @@ branch:
 atomic_stmt:
     K_ATOMIC stmt_block
         {
-            auto* s = new p2p::AtomicStmt();
+            auto* s = at_line(new p2p::AtomicStmt());
             s->body = std::move($2->items);
             delete $2;
             $$ = s;
@@ -1073,7 +1083,7 @@ atomic_stmt:
 dstep_stmt:
     K_D_STEP stmt_block
         {
-            auto* s = new p2p::DStepStmt();
+            auto* s = at_line(new p2p::DStepStmt());
             s->body = std::move($2->items);
             delete $2;
             $$ = s;
@@ -1084,7 +1094,7 @@ dstep_stmt:
 for_stmt:
     K_FOR '(' IDENT ':' expr OP_DOTDOT expr ')' stmt_block
         {
-            auto* s = new p2p::ForStmt();
+            auto* s = at_line(new p2p::ForStmt());
             s->var = $3; free($3);
             s->low.reset($5);
             s->high.reset($7);
@@ -1099,7 +1109,7 @@ for_stmt:
 select_stmt:
     K_SELECT '(' IDENT ':' expr OP_DOTDOT expr ')'
         {
-            auto* s = new p2p::SelectStmt();
+            auto* s = at_line(new p2p::SelectStmt());
             s->var = $3; free($3);
             s->low.reset($5);
             s->high.reset($7);
@@ -1111,7 +1121,7 @@ select_stmt:
 send_stmt:
     expr '!' expr_args_nonempty
         {
-            auto* s = new p2p::SendStmt();
+            auto* s = at_line(new p2p::SendStmt());
             s->chan.reset($1);
             s->args = std::move($3->items);
             delete $3;
@@ -1123,7 +1133,7 @@ send_stmt:
 recv_stmt:
     expr '?' expr_args_nonempty
         {
-            auto* s = new p2p::RecvStmt();
+            auto* s = at_line(new p2p::RecvStmt());
             s->chan.reset($1);
             s->args = std::move($3->items);
             delete $3;
@@ -1137,7 +1147,7 @@ recv_stmt:
 run_stmt:
     K_RUN IDENT '(' expr_args ')'
         {
-            auto* s = new p2p::RunStmt();
+            auto* s = at_line(new p2p::RunStmt());
             s->name = $2; free($2);
             s->args = std::move($4->items);
             delete $4;
@@ -1145,11 +1155,11 @@ run_stmt:
         }
     ;
 
-break_stmt: K_BREAK         { $$ = new p2p::BreakStmt(); } ;
-skip_stmt:  K_SKIP          { $$ = new p2p::SkipStmt(); } ;
+break_stmt: K_BREAK         { $$ = at_line(new p2p::BreakStmt()); } ;
+skip_stmt:  K_SKIP          { $$ = at_line(new p2p::SkipStmt()); } ;
 goto_stmt:  K_GOTO IDENT
         {
-            auto* g = new p2p::GotoStmt();
+            auto* g = at_line(new p2p::GotoStmt());
             g->label = $2; free($2);
             $$ = g;
         }
@@ -1179,26 +1189,26 @@ expr_args_nonempty:
 
 expr:
       primary                            { $$ = $1; }
-    | expr '+' expr                      { $$ = make_bin(p2p::BinaryOp::Add, $1, $3); }
-    | expr '-' expr                      { $$ = make_bin(p2p::BinaryOp::Sub, $1, $3); }
-    | expr '*' expr                      { $$ = make_bin(p2p::BinaryOp::Mul, $1, $3); }
-    | expr '/' expr                      { $$ = make_bin(p2p::BinaryOp::Div, $1, $3); }
-    | expr '%' expr                      { $$ = make_bin(p2p::BinaryOp::Mod, $1, $3); }
-    | expr OP_SHL expr                   { $$ = make_bin(p2p::BinaryOp::Shl, $1, $3); }
-    | expr OP_SHR expr                   { $$ = make_bin(p2p::BinaryOp::Shr, $1, $3); }
-    | expr '<' expr                      { $$ = make_bin(p2p::BinaryOp::Lt,  $1, $3); }
-    | expr '>' expr                      { $$ = make_bin(p2p::BinaryOp::Gt,  $1, $3); }
-    | expr OP_LE expr                    { $$ = make_bin(p2p::BinaryOp::Le,  $1, $3); }
-    | expr OP_GE expr                    { $$ = make_bin(p2p::BinaryOp::Ge,  $1, $3); }
-    | expr OP_EQ expr                    { $$ = make_bin(p2p::BinaryOp::Eq,  $1, $3); }
-    | expr OP_NEQ expr                   { $$ = make_bin(p2p::BinaryOp::Neq, $1, $3); }
-    | expr OP_AND expr                   { $$ = make_bin(p2p::BinaryOp::And, $1, $3); }
-    | expr OP_OR  expr                   { $$ = make_bin(p2p::BinaryOp::Or,  $1, $3); }
-    | '-' expr           %prec UMINUS    { $$ = make_un(p2p::UnaryOp::Neg, $2); }
-    | '!' expr           %prec UNOT      { $$ = make_un(p2p::UnaryOp::Not, $2); }
+    | expr '+' expr                      { $$ = at_line(make_bin(p2p::BinaryOp::Add, $1, $3)); }
+    | expr '-' expr                      { $$ = at_line(make_bin(p2p::BinaryOp::Sub, $1, $3)); }
+    | expr '*' expr                      { $$ = at_line(make_bin(p2p::BinaryOp::Mul, $1, $3)); }
+    | expr '/' expr                      { $$ = at_line(make_bin(p2p::BinaryOp::Div, $1, $3)); }
+    | expr '%' expr                      { $$ = at_line(make_bin(p2p::BinaryOp::Mod, $1, $3)); }
+    | expr OP_SHL expr                   { $$ = at_line(make_bin(p2p::BinaryOp::Shl, $1, $3)); }
+    | expr OP_SHR expr                   { $$ = at_line(make_bin(p2p::BinaryOp::Shr, $1, $3)); }
+    | expr '<' expr                      { $$ = at_line(make_bin(p2p::BinaryOp::Lt,  $1, $3)); }
+    | expr '>' expr                      { $$ = at_line(make_bin(p2p::BinaryOp::Gt,  $1, $3)); }
+    | expr OP_LE expr                    { $$ = at_line(make_bin(p2p::BinaryOp::Le,  $1, $3)); }
+    | expr OP_GE expr                    { $$ = at_line(make_bin(p2p::BinaryOp::Ge,  $1, $3)); }
+    | expr OP_EQ expr                    { $$ = at_line(make_bin(p2p::BinaryOp::Eq,  $1, $3)); }
+    | expr OP_NEQ expr                   { $$ = at_line(make_bin(p2p::BinaryOp::Neq, $1, $3)); }
+    | expr OP_AND expr                   { $$ = at_line(make_bin(p2p::BinaryOp::And, $1, $3)); }
+    | expr OP_OR  expr                   { $$ = at_line(make_bin(p2p::BinaryOp::Or,  $1, $3)); }
+    | '-' expr           %prec UMINUS    { $$ = at_line(make_un(p2p::UnaryOp::Neg, $2)); }
+    | '!' expr           %prec UNOT      { $$ = at_line(make_un(p2p::UnaryOp::Not, $2)); }
     | expr OP_ARROW expr ':' expr
         {
-            auto* t = new p2p::TernaryExpr();
+            auto* t = at_line(new p2p::TernaryExpr());
             t->cond.reset($1);
             t->then_expr.reset($3);
             t->else_expr.reset($5);
@@ -1232,31 +1242,31 @@ expr_no_ternary:
     ;
 
 primary:
-      INT_LITERAL          { $$ = new p2p::IntLiteral((long)$1); }
-    | K_TRUE               { $$ = new p2p::BoolLiteral(true); }
-    | K_FALSE              { $$ = new p2p::BoolLiteral(false); }
+      INT_LITERAL          { $$ = at_line(new p2p::IntLiteral((long)$1)); }
+    | K_TRUE               { $$ = at_line(new p2p::BoolLiteral(true)); }
+    | K_FALSE              { $$ = at_line(new p2p::BoolLiteral(false)); }
     | IDENT
         {
-            auto* e = new p2p::IdentExpr($1);
+            auto* e = at_line(new p2p::IdentExpr($1));
             free($1);
             $$ = e;
         }
     | '(' expr ')'
         {
-            auto* p = new p2p::ParenExpr();
+            auto* p = at_line(new p2p::ParenExpr());
             p->inner.reset($2);
             $$ = p;
         }
     | primary '[' expr ']'
         {
-            auto* e = new p2p::IndexExpr();
+            auto* e = at_line(new p2p::IndexExpr());
             e->base.reset($1);
             e->index.reset($3);
             $$ = e;
         }
     | primary '.' IDENT
         {
-            auto* e = new p2p::FieldExpr();
+            auto* e = at_line(new p2p::FieldExpr());
             e->base.reset($1);
             e->field = $3;
             free($3);
@@ -1266,11 +1276,11 @@ primary:
     | primary OP_DEC       { $$ = make_un(p2p::UnaryOp::PostDec, $1); }
     | OP_INC primary       %prec PREFIX_INCDEC  { $$ = make_un(p2p::UnaryOp::PreInc,  $2); }
     | OP_DEC primary       %prec PREFIX_INCDEC  { $$ = make_un(p2p::UnaryOp::PreDec,  $2); }
-    | K_NEMPTY '(' expr ')'  { $$ = make_builtin(p2p::BuiltinKind::Nempty, $3); }
-    | K_EMPTY '(' expr ')'   { $$ = make_builtin(p2p::BuiltinKind::Empty,  $3); }
-    | K_LEN '(' expr ')'     { $$ = make_builtin(p2p::BuiltinKind::Len,    $3); }
-    | K_FULL '(' expr ')'    { $$ = make_builtin(p2p::BuiltinKind::Full,   $3); }
-    | K_NFULL '(' expr ')'   { $$ = make_builtin(p2p::BuiltinKind::Nfull,  $3); }
+    | K_NEMPTY '(' expr ')'  { $$ = at_line(make_builtin(p2p::BuiltinKind::Nempty, $3)); }
+    | K_EMPTY '(' expr ')'   { $$ = at_line(make_builtin(p2p::BuiltinKind::Empty,  $3)); }
+    | K_LEN '(' expr ')'     { $$ = at_line(make_builtin(p2p::BuiltinKind::Len,    $3)); }
+    | K_FULL '(' expr ')'    { $$ = at_line(make_builtin(p2p::BuiltinKind::Full,   $3)); }
+    | K_NFULL '(' expr ')'   { $$ = at_line(make_builtin(p2p::BuiltinKind::Nfull,  $3)); }
     ;
 
 %%
