@@ -32,14 +32,15 @@ bool assignment_compatible(const Type& lhs, const Type& rhs) {
        a real check will be possible once field/element types are tracked. */
     if (lhs.unknown || rhs.unknown) return true;
 
-    if (is_integer(lhs) && is_integer(rhs)) return true;
-    if (is_bool(lhs)    && is_bool(rhs))    return true;
-    if (is_mtype(lhs)   && is_mtype(rhs))   return true;
-    if (is_chan(lhs)    && is_chan(rhs))    return true;
-    if (is_named(lhs)   && is_named(rhs)) {
-        return lhs.named == rhs.named;
-    }
-    /* Numeric → bool implicit not allowed; explicit cases caught later. */
+    /* Promela treats bool and the integer family as freely interconvertible
+       (false/true are 0/1). Allow assignment in both directions. */
+    bool lhs_numeric = is_integer(lhs) || is_bool(lhs);
+    bool rhs_numeric = is_integer(rhs) || is_bool(rhs);
+    if (lhs_numeric && rhs_numeric) return true;
+
+    if (is_mtype(lhs) && is_mtype(rhs)) return true;
+    if (is_chan(lhs)  && is_chan(rhs))  return true;
+    if (is_named(lhs) && is_named(rhs)) return lhs.named == rhs.named;
     return false;
 }
 
@@ -105,11 +106,15 @@ struct TypeChecker {
         } else if (auto* a = dynamic_cast<AssignStmt*>(&s)) {
             check_assign(*a);
         } else if (auto* ifs = dynamic_cast<IfStmt*>(&s)) {
-            for (auto& br : ifs->branches)
+            for (auto& br : ifs->branches) {
+                if (!br.is_else) check_guard(br.stmts);
                 for (auto& st : br.stmts) check_stmt(*st);
+            }
         } else if (auto* d = dynamic_cast<DoStmt*>(&s)) {
-            for (auto& br : d->branches)
+            for (auto& br : d->branches) {
+                if (!br.is_else) check_guard(br.stmts);
                 for (auto& st : br.stmts) check_stmt(*st);
+            }
         } else if (auto* at = dynamic_cast<AtomicStmt*>(&s)) {
             for (auto& st : at->body) check_stmt(*st);
         } else if (auto* ds = dynamic_cast<DStepStmt*>(&s)) {
@@ -217,6 +222,22 @@ struct TypeChecker {
         }
     }
 
+    /* The first statement of an if/do branch is its guard. If that guard is
+    a bare expression, it's evaluated for truth — which a channel value
+    can't meaningfully be. Other types (int treated as nonzero-is-true,
+    bool, comparisons) are fine in Promela. */
+    void check_guard(const std::vector<StmtPtr>& branch_stmts) {
+        if (branch_stmts.empty()) return;
+        auto* first = branch_stmts.front().get();
+        auto* es = dynamic_cast<ExprStmt*>(first);
+        if (!es || !es->expr) return;
+        Type t = infer(*es->expr);
+        if (!t.unknown && t.kind == BasicTypeKind::Chan) {
+            err(es->line, es->column,
+                "guard expression has channel type; expected a boolean condition");
+        }
+    }
+
     /* Type inference */
     Type infer(Expr& e) {
         if (dynamic_cast<IntLiteral*>(&e)) {
@@ -239,9 +260,30 @@ struct TypeChecker {
             Type t; t.unknown = true; return t;
         }
         if (auto* fe = dynamic_cast<FieldExpr*>(&e)) {
-            if (fe->base) infer(*fe->base);
-            /* Field type resolution deferred to return an unknown type
-            so checks stay lenient instead of guessing 'int'. */
+            Type base_ty = fe->base ? infer(*fe->base) : Type{};
+            if (base_ty.unknown) {
+                Type t; t.unknown = true; return t;
+            }
+            if (base_ty.kind != BasicTypeKind::Named) {
+                err(fe->line, fe->column,
+                 "field access '." + fe->field + "' on non-struct type "
+                    + type_label(base_ty));
+                Type t; t.unknown = true; return t;
+            }
+            /* base_ty.resolved should point to the TypedefDecl. */
+            auto* td = dynamic_cast<TypedefDecl*>(base_ty.resolved);
+            if (!td) {
+                /* Named type that didn't resolve — already reported elsewhere. */
+                Type t; t.unknown = true; return t;
+            }
+            for (auto& f : td->fields) {
+                if (f->name == fe->field) {
+                    if (f->type) return *f->type;
+                    Type t; t.unknown = true; return t;
+                }
+            }
+            err(fe->line, fe->column,
+                "type '" + td->name + "' has no field '" + fe->field + "'");
             Type t; t.unknown = true; return t;
         }
         if (auto* u = dynamic_cast<UnaryExpr*>(&e)) {
@@ -273,14 +315,46 @@ struct TypeChecker {
                 case BinaryOp::And: case BinaryOp::Or: {
                     Type t; t.kind = BasicTypeKind::Bool; return t;
                 }
-                case BinaryOp::Eq: case BinaryOp::Neq:
+                case BinaryOp::Eq: case BinaryOp::Neq: {
+                    /* Equality is allowed between mtypes, between numerics,
+                    between bools — but not across categories. */
+                    if (!l.unknown && !r.unknown) {
+                        bool ok =
+                            (is_integer(l) && is_integer(r)) ||
+                            (is_bool(l)    && is_bool(r))    ||
+                            (is_mtype(l)   && is_mtype(r));
+                        if (!ok) {
+                            err(b->line, b->column,
+                                "cannot compare " + type_label(l) + " with " + type_label(r));
+                        }
+                    }
+                    Type t; t.kind = BasicTypeKind::Bool; return t;
+                }
                 case BinaryOp::Lt: case BinaryOp::Le:
                 case BinaryOp::Gt: case BinaryOp::Ge: {
+                    if (!l.unknown && !is_integer(l)) {
+                        err(b->line, b->column,
+                            "ordering comparison requires integer operands, left is "
+                            + type_label(l));
+                    }
+                    if (!r.unknown && !is_integer(r)) {
+                        err(b->line, b->column,
+                            "ordering comparison requires integer operands, right is "
+                            + type_label(r));
+                    }
                     Type t; t.kind = BasicTypeKind::Bool; return t;
                 }
                 default: {
-                    if (!is_integer(l) || !is_integer(r)) {
-                        /* mild: only error if we're sure both are non-integer */
+                    /* Arithmetic: Add/Sub/Mul/Div/Mod/Shl/Shr */
+                    if (!l.unknown && !is_integer(l)) {
+                        err(b->line, b->column,
+                            "arithmetic operator requires integer operands, left is "
+                            + type_label(l));
+                    }
+                    if (!r.unknown && !is_integer(r)) {
+                        err(b->line, b->column,
+                            "arithmetic operator requires integer operands, right is "
+                            + type_label(r));
                     }
                     Type t; t.kind = BasicTypeKind::Int; return t;
                 }
