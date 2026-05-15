@@ -3,6 +3,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <vector>
+#include <algorithm>
 #include <unordered_map>
 #include "ast.h"
 #include "parser.hpp"
@@ -46,6 +48,20 @@ int g_saw_newline = 0;
 extern "C" void p2p_reset_lexer_state() {
     g_defines.clear();
     g_start_emitted = false;
+}
+
+/* Public accessor for the names of #define directives encountered.
+   Used by codegen to populate CONSTANTS. */
+extern "C" void p2p_defines_names(std::vector<std::string>* out) {
+    if (!out) return;
+    out->clear();
+    for (auto& kv : g_defines) out->push_back(kv.first);
+    std::sort(out->begin(), out->end());
+}
+
+extern "C" int p2p_define_known(const char* name) {
+    if (!name) return 0;
+    return g_defines.find(name) != g_defines.end() ? 1 : 0;
 }
 %}
 
@@ -192,26 +208,22 @@ ID          {LETTER}({LETTER}|{DIGIT})*
                 }
 
 {ID}            {
-                    auto it = g_defines.find(yytext);
-                    if (it != g_defines.end()) {
-                        const std::string& val = it->second;
-                        for (auto rit = val.rbegin(); rit != val.rend(); ++rit) {
-                            unput(*rit);
-                        }
-                    } else {
-                        yylval.str_val = strdup(yytext);
-                        /* Disambiguate IDENT vs TYPENAME:
-                           an identifier previously introduced by a typedef
-                           is returned as TYPENAME so the parser can use it
-                           as a type without ambiguity with statement-leading
-                           identifiers. */
-                        if (p2p::typedef_is_known(yytext)) {
-                            TR(TYPENAME);
-                            return TYPENAME;
-                        }
-                        TR(IDENT);
-                        return IDENT;
+                    yylval.str_val = strdup(yytext);
+                    /* Disambiguate IDENT vs TYPENAME:
+                       an identifier previously introduced by a typedef
+                       is returned as TYPENAME so the parser can use it
+                       as a type without ambiguity with statement-leading
+                       identifiers. */
+                    if (p2p::typedef_is_known(yytext)) {
+                        TR(TYPENAME);
+                        return TYPENAME;
                     }
+                    TR(IDENT);
+                    return IDENT;
+                    /* Note: #define names are kept as IDENT and not
+                       textually substituted. They appear as identifiers
+                       in the AST; the codegen maps them to CONSTANTS
+                       parameters in the generated TLA+. */
                 }
 
     /* Single-character tokens */
