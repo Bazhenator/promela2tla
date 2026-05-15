@@ -1,5 +1,6 @@
 #include "resolver.h"
 #include <unordered_set>
+extern "C" int p2p_define_known(const char* name);
 
 namespace p2p {
 
@@ -182,6 +183,12 @@ struct Resolver : Visitor {
     void visit(IdentExpr& e) override {
         auto* s = cur->lookup(e.name);
         if (!s) {
+        /* Could be a #define name — those aren't declared in Promela
+           but become CONSTANTS in the generated TLA+. The lexer's
+           define table is the source of truth. */
+            if (p2p_define_known(e.name.c_str())) {
+                return;  /* leave resolved == nullptr; codegen treats it as a constant */
+            }
             err(e.line, e.column, "unknown identifier '" + e.name + "'");
             return;
         }
