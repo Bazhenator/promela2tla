@@ -45,6 +45,7 @@ class RecvStmt;
 class RunStmt;
 class BreakStmt;
 class SkipStmt;
+class PrintfStmt;
 class GotoStmt;
 class LabeledStmt;
 class InlineCallStmt;
@@ -97,6 +98,7 @@ public:
     virtual void visit(RunStmt&)          = 0;
     virtual void visit(BreakStmt&)        = 0;
     virtual void visit(SkipStmt&)         = 0;
+    virtual void visit(PrintfStmt&)       = 0;
     virtual void visit(GotoStmt&)         = 0;
     virtual void visit(LabeledStmt&)      = 0;
     virtual void visit(InlineCallStmt&)   = 0;
@@ -436,6 +438,17 @@ public:
 
 class SkipStmt : public Stmt {
 public:
+    void accept(Visitor& v) override { v.visit(*this); }
+};
+
+/* printf("...", args...);
+   In Promela printf is a debug primitive with no observable effect on
+   the verification semantics. We accept it grammatically and store it
+   as an opaque statement; semantic passes and codegen ignore it. */
+class PrintfStmt : public Stmt {
+public:
+    std::string format;                 /* the format string literal */
+    std::vector<ExprPtr> args;
     void accept(Visitor& v) override { v.visit(*this); }
 };
 

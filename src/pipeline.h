@@ -47,4 +47,8 @@ struct CompileResult {
    result with parse_ok == false and an empty module. */
 CompileResult compile_file(const std::string& path, ParseMode mode);
 
+/* Generate TLA+ from a successfully compiled module. Returns empty
+   string if the result has any errors or no module. */
+std::string emit_tla(const CompileResult& r, const std::string& module_name);
+
 } // namespace p2p

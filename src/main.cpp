@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstring>
+#include <string>
 #include <cstdlib>
 #include "ast.h"
 #include "pipeline.h"
@@ -34,7 +35,8 @@ static bool report_diagnostics(const char* path, const p2p::CompileResult& r) {
     return had_error;
 }
 
-static int run(const char* path, p2p::ParseMode mode, bool print_tree) {
+static int run(const char* path, p2p::ParseMode mode,
+               bool print_tree, bool emit_tla) {
     p2p::CompileResult r = p2p::compile_file(path, mode);
 
     if (!r.parse_ok) {
@@ -50,6 +52,16 @@ static int run(const char* path, p2p::ParseMode mode, bool print_tree) {
         report_diagnostics(path, r);
         if (print_tree && r.module) {
             p2p::print_ast(*r.module, stdout);
+        }
+        if (emit_tla && r.ok()) {
+            /* Derive module name from the file path: basename without extension. */
+            std::string mod_name = path;
+            auto slash = mod_name.find_last_of('/');
+            if (slash != std::string::npos) mod_name = mod_name.substr(slash + 1);
+            auto dot = mod_name.find_last_of('.');
+            if (dot != std::string::npos) mod_name = mod_name.substr(0, dot);
+            std::string tla = p2p::emit_tla(r, mod_name);
+            fputs(tla.c_str(), stdout);
         }
     } else if (mode == p2p::ParseMode::Expr) {
         if (r.expr) {
@@ -75,6 +87,7 @@ int main(int argc, char** argv) {
     bool expr_mode  = false;
     bool stmt_mode  = false;
     bool print_tree = false;
+    bool emit_tla = false;
     const char* path = nullptr;
 
     for (int i = 1; i < argc; ++i) {
@@ -87,6 +100,8 @@ int main(int argc, char** argv) {
             expr_mode = true;
         } else if (strcmp(argv[i], "--stmt") == 0) {
             stmt_mode = true;
+        } else if (strcmp(argv[i], "--emit-tla") == 0) {
+            emit_tla = true;
         } else {
             path = argv[i];
         }
@@ -117,5 +132,5 @@ int main(int argc, char** argv) {
     if (expr_mode) mode = p2p::ParseMode::Expr;
     if (stmt_mode) mode = p2p::ParseMode::StmtBlock;
 
-    return run(path, mode, print_tree);
+    return run(path, mode, print_tree, emit_tla);
 }
