@@ -1,5 +1,6 @@
 #include "pipeline.h"
 #include <cstdio>
+#include "codegen.h"
 
 /* bison/flex globals — implementation detail of this module. */
 extern int   yyparse();
@@ -83,6 +84,11 @@ CompileResult compile_file(const std::string& path, ParseMode mode) {
     }
 
     return result;
+}
+
+std::string emit_tla(const CompileResult& r, const std::string& module_name) {
+    if (!r.ok() || !r.module) return "";
+    return generate_tla(*r.module, module_name);
 }
 
 } // namespace p2p

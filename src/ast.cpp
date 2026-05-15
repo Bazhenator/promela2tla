@@ -363,6 +363,15 @@ public:
     void visit(BreakStmt&) override { fputs("(break)", out_); }
     void visit(SkipStmt&)  override { fputs("(skip)",  out_); }
 
+    void visit(PrintfStmt& s) override {
+        fputs("(printf", out_);
+        for (auto& a : s.args) {
+            fputs(" ", out_);
+            if (a) a->accept(*this);
+        }
+        fputs(")\n", out_);
+    }
+
     void visit(GotoStmt& s) override {
         fprintf(out_, "(goto %s)", s.label.c_str());
     }

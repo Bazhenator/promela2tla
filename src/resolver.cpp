@@ -267,6 +267,11 @@ struct Resolver : Visitor {
     }
     void visit(BreakStmt&) override {}
     void visit(SkipStmt&)  override {}
+    void visit(PrintfStmt& s) override {
+        /* printf is opaque to semantic analysis. Walk arguments only so
+        that any identifier inside them is still resolved (catches typos). */
+        for (auto& a : s.args) if (a) a->accept(*this);
+    }
     void visit(GotoStmt& g) override {
         auto it = labels.find(g.label);
         if (it == labels.end()) {

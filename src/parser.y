@@ -160,6 +160,7 @@ static p2p::Stmt* wrap_expr_stmt(p2p::Expr* e) {
 %token <int_val> INT_LITERAL
 %token <str_val> IDENT
 %token <str_val> TYPENAME
+%token <str_val> STRING_LITERAL
 
 /* Type keywords */
 %token T_BYTE T_INT T_BOOL T_BIT T_SHORT T_UNSIGNED
@@ -208,6 +209,7 @@ static p2p::Stmt* wrap_expr_stmt(p2p::Expr* e) {
 %type <stmt>         for_stmt select_stmt
 %type <stmt>         send_stmt recv_stmt run_stmt
 %type <stmt>         break_stmt skip_stmt goto_stmt
+%type <stmt>         printf_stmt
 %type <stmt_list>    stmt_seq stmt_block
 %type <stmt_list>    local_var_decl_stmt local_chan_decl_stmt
 %type <branch_list>  branches
@@ -945,6 +947,7 @@ stmt:
     | break_stmt                        { $$ = $1; }
     | skip_stmt                         { $$ = $1; }
     | goto_stmt                         { $$ = $1; }
+    | printf_stmt                       { $$ = $1; }
     | IDENT ':' stmt
         {
             auto* l = at_line(new p2p::LabeledStmt());
@@ -1162,6 +1165,24 @@ goto_stmt:  K_GOTO IDENT
             auto* g = at_line(new p2p::GotoStmt());
             g->label = $2; free($2);
             $$ = g;
+        }
+    ;
+/* printf("format", args...) — accepted grammatically, treated as a no-op
+   by semantic analysis and code generation. */
+printf_stmt:
+      K_PRINTF '(' STRING_LITERAL ')'
+        {
+            auto* p = at_line(new p2p::PrintfStmt());
+            p->format = $3; free($3);
+            $$ = p;
+        }
+    | K_PRINTF '(' STRING_LITERAL ',' expr_args_nonempty ')'
+        {
+            auto* p = at_line(new p2p::PrintfStmt());
+            p->format = $3; free($3);
+            p->args = std::move($5->items);
+            delete $5;
+            $$ = p;
         }
     ;
 

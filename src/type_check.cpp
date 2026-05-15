@@ -138,6 +138,10 @@ struct TypeChecker {
             check_inline_call(*call);
         } else if (auto* ld = dynamic_cast<LocalVarDeclStmt*>(&s)) {
             if (ld->decl) check_var_decl(*ld->decl);
+        } else if (auto* pr = dynamic_cast<PrintfStmt*>(&s)) {
+            /* No type constraints on printf args; just infer them so any
+               identifiers in them are visited (errors from those propagate). */
+            for (auto& a : pr->args) if (a) infer(*a);
         }
         /* BreakStmt, SkipStmt, GotoStmt: nothing to check. */
     }

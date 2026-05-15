@@ -215,7 +215,7 @@ ID          {LETTER}({LETTER}|{DIGIT})*
                 }
 
     /* Single-character tokens */
-[!?=+\-*/%<>(){}\[\],;:@.]   {
+[!?=+\-*/%<>(){}\[\],;:@.]  {
                                 if (yytext[0] == '{') g_brace_depth++;
                                 else if (yytext[0] == '}' && g_brace_depth > 0) g_brace_depth--;
                                 if (trace_tokens())
@@ -223,6 +223,21 @@ ID          {LETTER}({LETTER}|{DIGIT})*
                                             yylineno, yytext[0]);
                                 return yytext[0];
                             }
+\"[^\"]*\"      {
+                    /* String literal — used only inside printf().
+                       We store the text (without surrounding quotes) into
+                       yylval.str_val so the parser can attach it to a
+                       PrintfStmt. */
+                    int n = (int)strlen(yytext);
+                    /* trim surrounding quotes */
+                    char* s = (char*)malloc(n - 1);
+                    memcpy(s, yytext + 1, n - 2);
+                    s[n - 2] = '\0';
+                    yylval.str_val = s;
+                    if (trace_tokens())
+                        fprintf(stderr, "[tok] line %d: STRING_LITERAL\n", yylineno);
+                    return STRING_LITERAL;
+                }
 
 .               {
                     fprintf(stderr, "Lexer error at line %d: unexpected char '%c' (0x%02x)\n",
